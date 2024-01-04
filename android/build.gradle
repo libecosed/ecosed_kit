@@ -1,4 +1,4 @@
-group 'io.ecosed.ecosed_kit'
+group 'io.ecosed.kit'
 version '1.0-SNAPSHOT'
 
 buildscript {
@@ -22,11 +22,11 @@ allprojects {
 }
 
 apply plugin: 'com.android.library'
-apply plugin: 'kotlin-android'
+apply plugin: 'org.jetbrains.kotlin.android'
 
 android {
     if (project.android.hasProperty("namespace")) {
-        namespace 'io.ecosed.ecosed_kit'
+        namespace 'io.ecosed.kit'
     }
 
     compileSdk = 34
@@ -44,13 +44,9 @@ android {
         minSdk =  24
     }
 
-//    buildFeatures {
-//        buildConfig = true
-//    }
-
-    dependencies {
-        testImplementation 'org.jetbrains.kotlin:kotlin-test'
-        testImplementation 'org.mockito:mockito-core:5.1.1'
+    buildFeatures {
+        aidl = true
+        buildConfig = true
     }
 
     testOptions {
@@ -64,4 +60,10 @@ android {
             }
         }
     }
+}
+
+dependencies {
+    implementation 'com.blankj:utilcodex:1.31.1'
+    testImplementation 'org.jetbrains.kotlin:kotlin-test'
+    testImplementation 'org.mockito:mockito-core:5.1.1'
 }

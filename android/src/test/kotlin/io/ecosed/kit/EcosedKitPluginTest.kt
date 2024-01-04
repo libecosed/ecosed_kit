@@ -1,4 +1,4 @@
-package io.ecosed.ecosed_kit
+package io.ecosed.kit
 
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
