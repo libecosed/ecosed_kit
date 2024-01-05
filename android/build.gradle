@@ -2,15 +2,14 @@ group 'io.ecosed.kit'
 version '1.0-SNAPSHOT'
 
 buildscript {
-    ext.kotlin_version = '1.7.10'
     repositories {
         google()
         mavenCentral()
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.3.1'
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath 'com.android.tools.build:gradle:8.2.1'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.21"
     }
 }
 
@@ -31,15 +30,6 @@ android {
 
     compileSdk = 34
 
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
-    }
-
-    kotlinOptions {
-        jvmTarget = '11'
-    }
-
     defaultConfig {
         minSdk =  24
     }
@@ -47,6 +37,15 @@ android {
     buildFeatures {
         aidl = true
         buildConfig = true
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+
+    kotlinOptions {
+        jvmTarget = '11'
     }
 
     testOptions {
@@ -64,6 +63,6 @@ android {
 
 dependencies {
     implementation 'com.blankj:utilcodex:1.31.1'
-    testImplementation 'org.jetbrains.kotlin:kotlin-test'
-    testImplementation 'org.mockito:mockito-core:5.1.1'
+    implementation 'dev.rikka.shizuku:api:13.1.5'
+    implementation 'dev.rikka.shizuku:provider:13.1.5'
 }
