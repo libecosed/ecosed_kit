@@ -35,18 +35,17 @@ import kotlinx.coroutines.launch
 import rikka.shizuku.Shizuku
 import kotlin.system.exitProcess
 
-class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware{
-    //Shizuku.OnBinderReceivedListener, Shizuku.OnBinderDeadListener, Shizuku.OnRequestPermissionResultListener {
+class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware,
+    LifecycleOwner, DefaultLifecycleObserver, ServiceConnection {
 
 
+    private lateinit var mMethodChannel: MethodChannel
 
-
-    private lateinit var mService: EcosedKitPlugin
     private lateinit var poem: ArrayList<String>
 
+
     override fun onCreate() {
-        super.onCreate()
-        mService = this@EcosedKitPlugin
+        super<Service>.onCreate()
 
         poem = arrayListOf()
         poem.add("不向焦虑与抑郁投降，这个世界终会有我们存在的地方。")
@@ -60,9 +59,32 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
         poem.add("对于所有生命来说，不会死亡的绝望，是最可怕的审判。")
         poem.add("我不曾活着，又何必害怕死亡。")
 
-
         val notification = buildNotification()
         //startForeground(notificationId, notification)
+    }
+
+    override fun onCreate(owner: LifecycleOwner) {
+        super<DefaultLifecycleObserver>.onCreate(owner)
+    }
+
+    override fun onStart(owner: LifecycleOwner) {
+        super<DefaultLifecycleObserver>.onStart(owner)
+    }
+
+    override fun onResume(owner: LifecycleOwner) {
+        super.onResume(owner)
+    }
+
+    override fun onPause(owner: LifecycleOwner) {
+        super.onPause(owner)
+    }
+
+    override fun onStop(owner: LifecycleOwner) {
+        super.onStop(owner)
+    }
+
+    override fun onDestroy(owner: LifecycleOwner) {
+        super<DefaultLifecycleObserver>.onDestroy(owner)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -71,16 +93,7 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
 
 
     override fun onBind(intent: Intent): IBinder {
-        return object : EcosedKit.Stub() {
-            override fun getFrameworkVersion(): String = frameworkVersion()
-            override fun getShizukuVersion(): String = shizukuVersion()
-            override fun getChineseCale(): String = chineseCale()
-            override fun getOnePoem(): String = onePoem()
-            override fun isWatch(): Boolean = watch()
-            override fun isUseDynamicColors(): Boolean = dynamicColors()
-            override fun openDesktopSettings() = taskbarSettings()
-            override fun openEcosedSettings() = ecosedSettings()
-        }
+        return mServices.getBinder(intent = intent)
     }
 
     override fun onRebind(intent: Intent?) {
@@ -93,21 +106,48 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
     }
 
     override fun onDestroy() {
-        super.onDestroy()
+        super<Service>.onDestroy()
 
     }
 
-//    override fun onBinderReceived() {
-//
-//    }
-//
-//    override fun onBinderDead() {
-//
-//    }
-//
-//    override fun onRequestPermissionResult(requestCode: Int, grantResult: Int) {
-//
-//    }
+
+    private interface ServiceWrapper {
+        fun getBinder(intent: Intent): IBinder
+    }
+
+    private val mServices = object : ServiceWrapper,
+        Shizuku.OnBinderReceivedListener,
+        Shizuku.OnBinderDeadListener,
+        Shizuku.OnRequestPermissionResultListener {
+
+        override fun getBinder(intent: Intent): IBinder {
+            return object : EcosedKit.Stub() {
+                override fun getFrameworkVersion(): String = frameworkVersion()
+                override fun getShizukuVersion(): String = shizukuVersion()
+                override fun getChineseCale(): String = chineseCale()
+                override fun getOnePoem(): String = onePoem()
+                override fun isWatch(): Boolean = watch()
+                override fun isUseDynamicColors(): Boolean = dynamicColors()
+                override fun openDesktopSettings() = taskbarSettings()
+                override fun openEcosedSettings() = ecosedSettings()
+            }
+        }
+
+
+        override fun onBinderReceived() {
+
+        }
+
+        override fun onBinderDead() {
+
+        }
+
+        override fun onRequestPermissionResult(requestCode: Int, grantResult: Int) {
+
+        }
+
+
+    }
 
     private val mUserServiceArgs = Shizuku.UserServiceArgs(
         ComponentName(AppUtils.getAppPackageName(), UserService().javaClass.name)
@@ -166,6 +206,7 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
 
         }
     }
+
     private fun ecosedSettings() {
         CoroutineScope(
             context = Dispatchers.Main
@@ -185,7 +226,7 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
         )
             .setContentTitle(AppUtils.getAppName())
             .setContentText("服务正在运行")
-        //    .setSmallIcon(R.drawable.baseline_keyboard_command_key_24)
+            //    .setSmallIcon(R.drawable.baseline_keyboard_command_key_24)
             .build()
 
         notification.flags = Notification.FLAG_ONGOING_EVENT
@@ -194,13 +235,9 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
     }
 
 
-
-
-    private lateinit var mMethodChannel: MethodChannel
-
     // 插件附加到引擎
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
-        mMethodChannel = MethodChannel(flutterPluginBinding.binaryMessenger, channelName)
+        mMethodChannel = MethodChannel(flutterPluginBinding.binaryMessenger, flutterChannelName)
         mMethodChannel.setMethodCallHandler(this@EcosedKitPlugin)
     }
 
@@ -209,7 +246,7 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
     }
 
     // 调用方法
-    override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) = engineUnit {
+    override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) = frameworkUnit {
         onMethodCall(
             call = object : MethodCallProxy {
 
@@ -247,7 +284,7 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
 
     override fun onAttachedToActivity(
         binding: ActivityPluginBinding,
-    ) = engineUnit {
+    ) = frameworkUnit {
         getActivity(activity = binding.activity)
         getLifecycle(lifecycle = FlutterLifecycleAdapter.getActivityLifecycle(binding))
         attach()
@@ -257,7 +294,7 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
 
     override fun onReattachedToActivityForConfigChanges(
         binding: ActivityPluginBinding,
-    ) = engineUnit {
+    ) = frameworkUnit {
         getActivity(activity = binding.activity)
         getLifecycle(lifecycle = FlutterLifecycleAdapter.getActivityLifecycle(binding))
     }
@@ -282,50 +319,43 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
         fun notImplemented()
     }
 
-    private val mFramework = object : FlutterPluginProxy {
+    private val mFramework = object : EcosedPlugin(), FlutterPluginProxy {
 
-        private val mEngine = object : EcosedEngine() {
-
-            override val hybridPlugin: EcosedPlugin
-                get() = mPlugin
+        override fun onEcosedAdded(binding: PluginBinding) {
+            super.onEcosedAdded(binding)
         }
 
-        private val mPlugin = object : EcosedPlugin() {
-
-            override fun onEcosedMethodCall(call: EcosedMethodCall, result: EcosedResult) {
-                super.onEcosedMethodCall(call, result)
-                when(call.method) {
-                    "" -> result.success("")
-                    else -> result.notImplemented()
-                }
-            }
-
-            override val channel: String
-                get() = "framework"
+        override fun onEcosedMethodCall(call: EcosedMethodCall, result: EcosedResult) {
+            super.onEcosedMethodCall(call, result)
         }
 
-        override fun getActivity(activity: Activity) {
-            mEngine.getActivity(activity = activity)
+        override fun getActivity(activity: Activity) = engineUnit {
+            getActivity(activity = activity)
         }
 
-        override fun getLifecycle(lifecycle: Lifecycle) {
-            mEngine.getLifecycle(lifecycle = lifecycle)
+        override fun getLifecycle(lifecycle: Lifecycle) = engineUnit {
+            getLifecycle(lifecycle = lifecycle)
         }
 
-        override fun onMethodCall(call: MethodCallProxy, result: ResultProxy) {
-            mEngine.onMethodCall(call = call, result = result)
+        override fun onMethodCall(call: MethodCallProxy, result: ResultProxy) = engineUnit {
+            onMethodCall(call = call, result = result)
         }
 
-        override fun attach() {
-            mEngine.attach()
+        override fun attach() = engineUnit {
+            attach()
         }
+
+        override val channel: String
+            get() = frameworkChannelName
     }
 
-    private fun engineUnit(
-        content: FlutterPluginProxy.() -> Unit,
-    ) {
-        content.invoke(mFramework)
-    }
+    private fun <R> frameworkUnit(
+        content: FlutterPluginProxy.() -> R,
+    ): R = content.invoke(mFramework)
+
+    private fun <R> engineUnit(
+        content: EngineWrapper.() -> R,
+    ): R = content.invoke(mEngine)
 
     /**
      * 用于调用方法的接口.
@@ -594,26 +624,31 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
 
     }
 
-    private abstract class EcosedEngine : EcosedPlugin(), FlutterPluginProxy, LifecycleOwner, DefaultLifecycleObserver {
+    private lateinit var mActivity: Activity
+    private lateinit var mLifecycle: Lifecycle
+
+    /** 插件绑定器. */
+    private var mBinding: PluginBinding? = null
+
+    /** 插件列表. */
+    private var mPluginList: ArrayList<EcosedPlugin>? = null
+
+    private val mBaseDebug: Boolean = AppUtils.isAppDebug()
+
+
+    private var execResult: Any? = null
+
+    private var mFullDebug: Boolean = false
+
+    private interface EngineWrapper : FlutterPluginProxy {
+
+        fun <T> execMethodCall(channel: String, method: String, bundle: Bundle?): T?
+    }
+
+    private val mEngine = object : EcosedPlugin(), EngineWrapper {
 
         override val channel: String
-            get() = channelName
-
-
-        /** 插件绑定器. */
-        private var mBinding: PluginBinding? = null
-
-        /** 插件列表. */
-        private var mPluginList: ArrayList<EcosedPlugin>? = null
-
-        private val isBaseDebug: Boolean = AppUtils.isAppDebug()
-
-
-
-        private var execResult: Any? = null
-
-        private lateinit var mActivity: Activity
-        private lateinit var mLifecycle: Lifecycle
+            get() = engineChannelName
 
         override fun getActivity(activity: Activity) {
             mActivity = activity
@@ -623,11 +658,12 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
             mLifecycle = lifecycle
         }
 
-        override fun getLifecycle(): Lifecycle {
-            return mLifecycle
-        }
+        override fun onEcosedAdded(binding: PluginBinding) {
+            super.onEcosedAdded(binding)
+            mFullDebug = isDebug
 
-        open val hybridPlugin: EcosedPlugin? = null
+            lifecycle.addObserver(this@EcosedKitPlugin)
+        }
 
         override fun onEcosedMethodCall(call: EcosedMethodCall, result: EcosedResult) {
             super.onEcosedMethodCall(call, result)
@@ -663,83 +699,40 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
          * 将引擎附加到应用.
          */
         override fun attach() {
-
             when {
                 (mPluginList == null) or (mBinding == null) -> apply {
-                    // 引擎附加基本上下文
-                    attachBaseContext(base = mActivity.baseContext)
-                    lifecycle.addObserver(this@EcosedEngine)
-
-                    // 初始化插件绑定器.
-                    mBinding = PluginBinding(
-                        context = this@EcosedEngine, debug = isBaseDebug
-                    )
                     // 初始化插件列表.
                     mPluginList = arrayListOf()
                     // 添加所有插件.
-                    arrayListOf(
-                        this@EcosedEngine,
-                        //TermPluxClient.build(),
-                        hybridPlugin?: error("")
-                    ).let { plugins ->
-                        mBinding?.let { binding ->
-                            plugins.forEach { plugin ->
-                                plugin.apply {
-                                    try {
-                                        onEcosedAdded(binding = binding)
-                                        if (isBaseDebug) {
-                                            Log.d(tag, "插件${plugin.javaClass.name}已加载")
-                                        }
-                                    } catch (e: Exception) {
-                                        if (isBaseDebug) {
-                                            Log.e(tag, "插件添加失败!", e)
-                                        }
+                    pluginUnit { binding ->
+                        this@pluginUnit.forEach {item ->
+                            item.apply {
+                                try {
+                                    onEcosedAdded(binding = binding)
+                                    if (mBaseDebug) {
+                                        Log.d(tag, "插件${item.javaClass.name}已加载")
+                                    }
+                                } catch (e: Exception) {
+                                    if (mBaseDebug) {
+                                        Log.e(tag, "插件添加失败!", e)
                                     }
                                 }
-                            }
-                        }.run {
-                            plugins.forEach { plugin ->
-                                mPluginList?.add(element = plugin)
-                                if (isBaseDebug) {
-                                    Log.d(tag, "插件${plugin.javaClass.name}已添加到插件列表")
+                            }.run {
+                                mPluginList?.add(element = item)
+                                if (mBaseDebug) {
+                                    Log.d(tag, "插件${item.javaClass.name}已添加到插件列表")
                                 }
                             }
                         }
                     }
                 }
 
-                else -> if (isBaseDebug) {
+                else -> if (mBaseDebug) {
                     Log.e(tag, "请勿重复执行attach!")
                 }
             }
         }
 
-        // Flutter插件Activity生命周期
-        override fun onCreate(owner: LifecycleOwner) {
-            super.onCreate(owner)
-
-
-        }
-
-        override fun onStart(owner: LifecycleOwner) {
-            super.onStart(owner)
-        }
-
-        override fun onResume(owner: LifecycleOwner) {
-            super.onResume(owner)
-        }
-
-        override fun onPause(owner: LifecycleOwner) {
-            super.onPause(owner)
-        }
-
-        override fun onStop(owner: LifecycleOwner) {
-            super.onStop(owner)
-        }
-
-        override fun onDestroy(owner: LifecycleOwner) {
-            super.onDestroy(owner)
-        }
 
         /**
          * 调用插件代码的方法.
@@ -748,7 +741,7 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
          * @param bundle 通过Bundle传递参数.
          * @return 返回方法执行后的返回值,类型为Any?.
          */
-        fun <T> execMethodCall(
+        override fun <T> execMethodCall(
             channel: String,
             method: String,
             bundle: Bundle?,
@@ -762,7 +755,7 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
                                 result = pluginChannel.execMethodCall<T>(
                                     name = channel, method = method, bundle = bundle
                                 )
-                                if (isBaseDebug) {
+                                if (mBaseDebug) {
                                     Log.d(
                                         tag,
                                         "插件代码调用成功!\n通道名称:${channel}.\n方法名称:${method}.\n返回结果:${result}."
@@ -773,25 +766,33 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
                     }
                 }
             } catch (e: Exception) {
-                if (isBaseDebug) {
+                if (mBaseDebug) {
                     Log.e(tag, "插件代码调用失败!", e)
                 }
             }
             return result
         }
 
-        companion object {
+    }
 
-            /** 用于打印日志的标签. */
-            private const val tag: String = "PluginEngine"
-
-            private const val channelName: String = "termplux_engine"
-
-        }
+    private fun <R> pluginUnit(
+        content: ArrayList<EcosedPlugin>.(PluginBinding) -> R
+    ): R {
+        return content.invoke(
+            arrayListOf(
+                mEngine,
+                mFramework,
+                mClient
+            ),
+            PluginBinding(
+                context = mActivity,
+                debug = mBaseDebug
+            )
+        )
     }
 
 
-    internal interface EcosedCallBack {
+    private interface EcosedCallBack {
 
         /** 在服务绑定成功时回调 */
         fun onEcosedConnected()
@@ -806,26 +807,27 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
         fun onEcosedUnbind()
     }
 
-    private class TermPluxClient private constructor() : EcosedPlugin(), ServiceConnection, EcosedCallBack {
+    private lateinit var mEcosedServicesIntent: Intent
+
+    /** 服务AIDL接口 */
+    private var mAIDL: EcosedKit? = null
+
+    /** 服务绑定状态 */
+    private var mIsBind: Boolean = false
+
+    private val mClient = object : EcosedPlugin(), EcosedCallBack {
 
         override val channel: String
-            get() = mChannelName
-
-        private lateinit var mIntent: Intent
-
-        /** 服务AIDL接口 */
-        private var mFramework: EcosedKit? = null
-
-        /** 服务绑定状态 */
-        private var mIsBind: Boolean = false
+            get() = clientChannelName
 
         override fun onEcosedAdded(binding: PluginBinding) {
             super.onEcosedAdded(binding)
-            mIntent = Intent(this@TermPluxClient, EcosedKitPlugin().javaClass)
-            mIntent.action = action
+            mEcosedServicesIntent = Intent(binding.getContext(), this@EcosedKitPlugin.javaClass)
+            mEcosedServicesIntent.action = action
 
-            startService(mIntent)
-            bindEcosed()
+
+            this.startService(mEcosedServicesIntent)
+            bindEcosed(this)
 
             Toast.makeText(this, "client", Toast.LENGTH_SHORT).show()
         }
@@ -835,9 +837,9 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
             when (call.method) {
                 mMethodDebug -> result.success(isDebug)
                 mMethodIsBinding -> result.success(mIsBind)
-                mMethodStartService -> startService(mIntent)
-                mMethodBindService -> bindEcosed()
-                mMethodUnbindService -> unbindEcosed()
+                mMethodStartService -> startService(mEcosedServicesIntent)
+                mMethodBindService -> bindEcosed(this)
+                mMethodUnbindService -> unbindEcosed(this)
 
                 "" -> result.success({
 
@@ -848,160 +850,145 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
             }
         }
 
-        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-            mFramework = EcosedKit.Stub.asInterface(service)
-            when {
-                mFramework != null -> {
-                    mIsBind = true
-                    callBack {
-                        onEcosedConnected()
-                    }
-                }
-
-                else -> if (isDebug) Log.e(
-                    tag, "AIDL接口获取失败 - onServiceConnected"
-                )
-            }
-            when {
-                isDebug -> Log.i(
-                    tag, "服务已连接 - onServiceConnected"
-                )
-            }
-        }
-
-        override fun onServiceDisconnected(name: ComponentName?) {
-            mIsBind = false
-            mFramework = null
-            unbindService(this)
-            callBack {
-                onEcosedDisconnected()
-            }
-            if (isDebug) {
-                Log.i(tag, "服务意外断开连接 - onServiceDisconnected")
-            }
-        }
-
-        override fun onBindingDied(name: ComponentName?) {
-            super.onBindingDied(name)
-        }
-
-        override fun onNullBinding(name: ComponentName?) {
-            super.onNullBinding(name)
-            if (isDebug) {
-                Log.e(tag, "Binder为空 - onNullBinding")
-            }
-        }
-
         override fun onEcosedConnected() {
-            Toast.makeText(this@TermPluxClient, "onEcosedConnected", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "onEcosedConnected", Toast.LENGTH_SHORT).show()
         }
 
         override fun onEcosedDisconnected() {
-            Toast.makeText(this@TermPluxClient, "onEcosedDisconnected", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "onEcosedDisconnected", Toast.LENGTH_SHORT).show()
         }
 
         override fun onEcosedDead() {
-            Toast.makeText(this@TermPluxClient, "onEcosedDead", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "onEcosedDead", Toast.LENGTH_SHORT).show()
         }
 
         override fun onEcosedUnbind() {
-            Toast.makeText(this@TermPluxClient, "onEcosedUnbind", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "onEcosedUnbind", Toast.LENGTH_SHORT).show()
         }
+    }
 
-        /**
-         * 绑定服务
-         */
-        private fun bindEcosed() {
-            try {
-                if (!mIsBind) {
-                    bindService(
-                        mIntent,
-                        this@TermPluxClient,
-                        Context.BIND_AUTO_CREATE
-                    ).let {
-                        if (!it) callBack {
-                            onEcosedDead()
-                        }
+    /**
+     * 绑定服务
+     */
+    private fun bindEcosed(context: Context) {
+        try {
+            if (!mIsBind) {
+                context.bindService(
+                    mEcosedServicesIntent,
+                    this@EcosedKitPlugin,
+                    Context.BIND_AUTO_CREATE
+                ).let { bind ->
+                    callBackUnit {
+                        if (!bind) onEcosedDead()
                     }
-                }
-            } catch (e: Exception) {
-                if (isDebug) {
-                    Log.e(tag, "bindEcosed", e)
                 }
             }
-        }
-
-        /**
-         * 解绑服务
-         */
-        private fun unbindEcosed() {
-            try {
-                if (mIsBind) {
-                    unbindService(
-                        this@TermPluxClient
-                    ).run {
-                        mIsBind = false
-                        mFramework = null
-                        callBack {
-                            onEcosedDisconnected()
-                        }
-                        if (isDebug) {
-                            Log.i(tag, "服务已断开连接 - onServiceDisconnected")
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                if (isDebug) {
-                    Log.e(tag, "unbindEcosed", e)
-                }
+        } catch (e: Exception) {
+            if (mFullDebug) {
+                Log.e(tag, "bindEcosed", e)
             }
         }
+    }
 
-        private fun getShizukuVersion(): String? {
-            return try {
-                if (mIsBind) {
-                    if (mFramework != null) {
-                        mFramework!!.shizukuVersion
-                    } else {
-                        callBack {
-                            onEcosedUnbind()
-                        }
-                        null
+    /**
+     * 解绑服务
+     */
+    private fun unbindEcosed(context: Context) {
+        try {
+            if (mIsBind) {
+                context.unbindService(
+                    this@EcosedKitPlugin
+                ).run {
+                    mIsBind = false
+                    mAIDL = null
+                    callBackUnit {
+                        onEcosedDisconnected()
                     }
+                    if (mFullDebug) {
+                        Log.i(tag, "服务已断开连接 - onServiceDisconnected")
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            if (mFullDebug) {
+                Log.e(tag, "unbindEcosed", e)
+            }
+        }
+    }
+
+    private fun getShizukuVersion(): String? {
+        return try {
+            if (mIsBind) {
+                if (mAIDL != null) {
+                    mAIDL!!.shizukuVersion
                 } else {
-                    callBack {
+                    callBackUnit {
                         onEcosedUnbind()
                     }
                     null
                 }
-            } catch (e: Exception) {
-                if (isDebug) {
-                    Log.e(tag, "getShizukuVersion", e)
+            } else {
+                callBackUnit {
+                    onEcosedUnbind()
                 }
                 null
             }
+        } catch (e: Exception) {
+            if (mFullDebug) {
+                Log.e(tag, "getShizukuVersion", e)
+            }
+            null
         }
+    }
 
-        private fun callBack(
-            function: EcosedCallBack.() -> Unit,
-        ) {
-            this@TermPluxClient.function()
+    override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+        mAIDL = EcosedKit.Stub.asInterface(service)
+        when {
+            mAIDL != null -> {
+                mIsBind = true
+                callBackUnit {
+                    onEcosedConnected()
+                }
+            }
+
+            else -> if (mFullDebug) Log.e(
+                tag, "AIDL接口获取失败 - onServiceConnected"
+            )
         }
-
-        companion object {
-            internal const val mChannelName: String = "ecosed_droid"
-            internal const val mMethodDebug: String = "is_binding"
-            internal const val mMethodIsBinding: String = "is_debug"
-            internal const val mMethodStartService: String = "start_service"
-            internal const val mMethodBindService: String = "bind_service"
-            internal const val mMethodUnbindService: String = "unbind_service"
-
-            internal const val mMethodShizukuVersion: String = "shizuku_version"
-
-            internal const val tag: String = "EcosedClient"
-            internal const val action: String = "io.ecosed.droid.action"
-            fun build(): TermPluxClient = TermPluxClient()
+        when {
+            mFullDebug -> Log.i(
+                tag, "服务已连接 - onServiceConnected"
+            )
         }
+    }
+
+    override fun onServiceDisconnected(name: ComponentName?) {
+        mIsBind = false
+        mAIDL = null
+        unbindService(this)
+        callBackUnit {
+            onEcosedDisconnected()
+        }
+        if (mFullDebug) {
+            Log.i(tag, "服务意外断开连接 - onServiceDisconnected")
+        }
+    }
+
+    override fun onBindingDied(name: ComponentName?) {
+        super.onBindingDied(name)
+    }
+
+    override fun onNullBinding(name: ComponentName?) {
+        super.onNullBinding(name)
+        if (mFullDebug) {
+            Log.e(tag, "Binder为空 - onNullBinding")
+        }
+    }
+
+    private fun callBackUnit(
+        function: EcosedCallBack.() -> Unit,
+    ) {
+        mClient.function()
     }
 
     private class UserService : IUserService.Stub() {
@@ -1016,6 +1003,26 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
     }
 
     private companion object {
-        const val channelName = "ecosed_kit"
+
+        const val flutterChannelName = "ecosed_kit"
+        const val clientChannelName: String = "ecosed_client"
+        const val engineChannelName: String = "ecosed_engine"
+        const val frameworkChannelName: String = "ecosed_framework"
+
+
+        const val mMethodDebug: String = "is_binding"
+        const val mMethodIsBinding: String = "is_debug"
+        const val mMethodStartService: String = "start_service"
+        const val mMethodBindService: String = "bind_service"
+        const val mMethodUnbindService: String = "unbind_service"
+
+        const val mMethodShizukuVersion: String = "shizuku_version"
+
+        const val tag: String = "EcosedKitPlugin"
+        const val action: String = "io.ecosed.kit.action"
+    }
+
+    override fun getLifecycle(): Lifecycle {
+        return mLifecycle
     }
 }
