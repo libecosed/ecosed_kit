@@ -102,14 +102,12 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
         return super.onStartCommand(intent, flags, startId)
     }
 
-
     override fun onBind(intent: Intent): IBinder {
-        return mServices.getBinder(intent = intent)
+        return mService.getBinder(intent = intent)
     }
 
     override fun onRebind(intent: Intent?) {
         super.onRebind(intent)
-
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
@@ -118,7 +116,6 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
 
     override fun onDestroy() {
         super<Service>.onDestroy()
-
     }
 
     // 插件附加到引擎
@@ -351,6 +348,10 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
 
     private interface ServiceWrapper {
         fun getBinder(intent: Intent): IBinder
+    }
+
+    private interface NativeWrapper {
+        fun main()
     }
 
     /**
@@ -756,9 +757,7 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
                 mMethodBindService -> bindEcosed(this)
                 mMethodUnbindService -> unbindEcosed(this)
 
-                "" -> result.success({
-
-                })
+                "getPlatformVersion" -> result.success("Android API ${Build.VERSION.SDK_INT}")
 
                 mMethodShizukuVersion -> result.success(getShizukuVersion())
                 else -> result.notImplemented()
@@ -782,10 +781,13 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
         }
     }
 
-    private val mServices = object : ServiceWrapper,
+    private val mService = object : EcosedPlugin(), ServiceWrapper,
         Shizuku.OnBinderReceivedListener,
         Shizuku.OnBinderDeadListener,
         Shizuku.OnRequestPermissionResultListener {
+
+        override val channel: String
+            get() = "ecosed_service"
 
         override fun getBinder(intent: Intent): IBinder {
             return object : EcosedKit.Stub() {
@@ -811,6 +813,16 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
 
         override fun onRequestPermissionResult(requestCode: Int, grantResult: Int) {
 
+        }
+    }
+
+    private val mNative = object : EcosedPlugin(), NativeWrapper {
+
+        override val channel: String
+            get() = "ecosed_native"
+
+        override fun main() {
+            main(arrayOf(""))
         }
     }
 
@@ -864,7 +876,7 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
     private fun <R> pluginUnit(
         content: (ArrayList<EcosedPlugin>, PluginBinding) -> R
     ): R = content.invoke(
-        arrayListOf(mFramework, mEngine, mClient),
+        arrayListOf(mFramework, mEngine, mClient, mService, mNative),
         PluginBinding(context = mActivity, debug = mBaseDebug)
     )
 
@@ -934,6 +946,8 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
             }
         }
     }
+
+    private external fun main(args: Array<String>)
 
     private fun check() {
         try {
@@ -1043,6 +1057,11 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
     }
 
     private companion object {
+
+        init {
+            System.loadLibrary("ecosed")
+        }
+
         // 打印日志的标签
         const val tag: String = "EcosedKitPlugin"
 

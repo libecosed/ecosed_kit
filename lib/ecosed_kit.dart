@@ -22,10 +22,6 @@ class EcosedKit {
     }
   }
 
-  void openMenu() {}
-
-  void closeMenu() {}
-
   Widget ecosedApp(Widget child) {
     return Stack(children: [child, _banner()]);
   }

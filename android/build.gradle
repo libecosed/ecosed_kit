@@ -34,9 +34,15 @@ android {
         minSdk =  24
     }
 
+    externalNativeBuild {
+        cmake {
+            path("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
+    }
+
     buildFeatures {
         aidl = true
-        buildConfig = true
     }
 
     compileOptions {
@@ -62,6 +68,7 @@ android {
 }
 
 dependencies {
+    implementation 'com.google.android.gms:play-services-base:18.3.0'
     implementation 'com.blankj:utilcodex:1.31.1'
     implementation 'dev.rikka.shizuku:api:13.1.5'
     implementation 'dev.rikka.shizuku:provider:13.1.5'

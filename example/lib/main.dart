@@ -51,12 +51,7 @@ class _MyAppState extends State<MyApp> {
         title: const Text('EcosedKit Example'),
       ),
       body: Center(
-        child: Column(
-          children: [
-            MaterialButton(onPressed: _ecosedKitPlugin.openMenu, child: const Text('打开菜单')),
-            MaterialButton(onPressed: _ecosedKitPlugin.closeMenu, child: const Text('关闭菜单'))
-          ],
-        )
+        child: Text(_platformVersion)
       ),
     )));
   }
