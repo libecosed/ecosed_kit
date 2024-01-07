@@ -57,7 +57,7 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
 
     private var mFullDebug: Boolean = false
 
-    private var execResult: Any? = null
+    private var mExecResult: Any? = null
 
     private lateinit var mEcosedServicesIntent: Intent
 
@@ -165,7 +165,6 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
             }
         )
     }
-
 
     override fun onAttachedToActivity(
         binding: ActivityPluginBinding,
@@ -642,13 +641,13 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
 
         override fun onMethodCall(call: MethodCallProxy, result: ResultProxy) {
             try {
-                execResult = execMethodCall<Any>(
+                mExecResult = execMethodCall<Any>(
                     channel = clientChannelName,
                     method = call.methodProxy,
                     bundle = call.bundleProxy
                 )
-                if (execResult != null) {
-                    result.success(execResult)
+                if (mExecResult != null) {
+                    result.success(mExecResult)
                 } else {
                     result.notImplemented()
                 }
@@ -896,6 +895,8 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
      ***********************************************************************************************
      */
 
+    private external fun main(args: Array<String>)
+
     /**
      * 绑定服务
      * @param context 上下文
@@ -946,8 +947,6 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
             }
         }
     }
-
-    private external fun main(args: Array<String>)
 
     private fun check() {
         try {
