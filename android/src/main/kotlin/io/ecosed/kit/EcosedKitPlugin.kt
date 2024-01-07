@@ -705,7 +705,7 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
                     mPluginList = arrayListOf()
                     // 添加所有插件.
                     pluginUnit { binding ->
-                        this@pluginUnit.forEach {item ->
+                        this@pluginUnit.forEach { item ->
                             item.apply {
                                 try {
                                     onEcosedAdded(binding = binding)
