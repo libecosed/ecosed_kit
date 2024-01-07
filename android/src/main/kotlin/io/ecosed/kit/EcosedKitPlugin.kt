@@ -79,7 +79,6 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
         .debuggable(mFullDebug)
         .version(AppUtils.getAppVersionCode())
 
-
     override fun onCreate() {
         super<Service>.onCreate()
 
@@ -148,6 +147,7 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
                     }
             },
             result = object : ResultProxy {
+
                 override fun success(
                     resultProxy: Any?,
                 ) = result.success(
@@ -652,7 +652,7 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
                     result.notImplemented()
                 }
             } catch (e: Exception) {
-                result.error(tag, "", e)
+                result.error(tag, "", Log.getStackTraceString(e))
             }
         }
 
