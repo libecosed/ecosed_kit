@@ -2,6 +2,8 @@
     package="io.ecosed.kit">
 
     <uses-permission android:name="android.permission.FAKE_PACKAGE_SIGNATURE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application>
         <meta-data

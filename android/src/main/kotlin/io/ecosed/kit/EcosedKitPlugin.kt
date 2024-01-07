@@ -3,6 +3,8 @@ package io.ecosed.kit
 import android.Manifest
 import android.app.Activity
 import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.Service
 import android.app.UiModeManager
 import android.content.ComponentName
@@ -17,6 +19,7 @@ import android.os.Bundle
 import android.os.IBinder
 import android.util.Log
 import android.widget.Toast
+import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle
@@ -94,8 +97,20 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
         poem.add("对于所有生命来说，不会死亡的绝望，是最可怕的审判。")
         poem.add("我不曾活着，又何必害怕死亡。")
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                notificationChannel,
+                AppUtils.getAppName(),
+                NotificationManager.IMPORTANCE_HIGH
+            )
+            val notificationManager = getSystemService(
+                Context.NOTIFICATION_SERVICE
+            ) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+        }
+
         val notification = buildNotification()
-        //startForeground(notificationId, notification)
+        startForeground(notificationId, notification)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -1012,22 +1027,17 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
     }
 
     private fun buildNotification(): Notification {
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            PermissionUtils.permission(Manifest.permission.POST_NOTIFICATIONS)
+            PermissionUtils.permission(Manifest.permission.POST_NOTIFICATIONS).request()
         }
 
-        val notification = NotificationCompat.Builder(
+        return NotificationCompat.Builder(
             this@EcosedKitPlugin,
-            ""
-        )
-            .setContentTitle(AppUtils.getAppName())
-            .setContentText("服务正在运行")
-            //    .setSmallIcon(R.drawable.baseline_keyboard_command_key_24)
-            .build()
-
-        notification.flags = Notification.FLAG_ONGOING_EVENT
-
-        return notification
+            notificationChannel
+        ).build().apply {
+            flags = Notification.FLAG_ONGOING_EVENT
+        }
     }
 
     private fun getShizukuVersion(): String? {
@@ -1073,6 +1083,7 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
         const val clientChannelName: String = "ecosed_client"
 
         const val notificationId = 1
+        const val notificationChannel: String = "ecosed_notification"
 
 
         const val mMethodDebug: String = "is_binding"
