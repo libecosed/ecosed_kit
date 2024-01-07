@@ -1,4 +1,4 @@
-package io.ecosed.ecosed_kit_example
+package io.ecosed.kit
 
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
