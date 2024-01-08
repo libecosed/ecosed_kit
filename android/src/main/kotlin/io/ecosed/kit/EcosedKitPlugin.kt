@@ -66,6 +66,7 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
 
     /** 服务AIDL接口 */
     private var mAIDL: EcosedKit? = null
+    private var mIUserService: IUserService? = null
 
     /** 服务绑定状态 */
     private var mIsBind: Boolean = false
@@ -82,8 +83,24 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
         .debuggable(mFullDebug)
         .version(AppUtils.getAppVersionCode())
 
+
     override fun onCreate() {
         super<Service>.onCreate()
+        // 添加Shizuku监听
+
+        serviceUnit {
+            addListener()
+        }
+
+        check()
+
+        // 绑定Shizuku服务
+  //      Shizuku.bindUserService(mUserServiceArgs, mService)
+
+//        mIUserService!!.poem()
+
+
+        //调用Shizuku代码: mIUserService.方法名()
 
         poem = arrayListOf()
         poem.add("不向焦虑与抑郁投降，这个世界终会有我们存在的地方。")
@@ -111,6 +128,8 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
 
         val notification = buildNotification()
         startForeground(notificationId, notification)
+
+
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -118,7 +137,11 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
     }
 
     override fun onBind(intent: Intent): IBinder {
-        return mService.getBinder(intent = intent)
+        return serviceUnit {
+            return@serviceUnit getBinder(
+                intent = intent
+            )
+        }
     }
 
     override fun onRebind(intent: Intent?) {
@@ -131,6 +154,12 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
 
     override fun onDestroy() {
         super<Service>.onDestroy()
+
+        serviceUnit {
+            removeListener()
+        }
+        // 解绑Shizuku服务
+        //  Shizuku.unbindUserService(mUserServiceArgs, mService, true)
     }
 
     // 插件附加到引擎
@@ -362,6 +391,9 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
 
     private interface ServiceWrapper {
         fun getBinder(intent: Intent): IBinder
+
+        fun addListener()
+        fun removeListener()
     }
 
     private interface NativeWrapper {
@@ -750,16 +782,17 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
         override val channel: String
             get() = clientChannelName
 
-        override fun onEcosedAdded(binding: PluginBinding) {
+        override fun onEcosedAdded(binding: PluginBinding) = run {
             super.onEcosedAdded(binding)
-            mEcosedServicesIntent = Intent(binding.getContext(), this@EcosedKitPlugin.javaClass)
+            mEcosedServicesIntent = Intent(this@run, this@EcosedKitPlugin.javaClass)
             mEcosedServicesIntent.action = action
 
 
-            this.startService(mEcosedServicesIntent)
-            bindEcosed(this)
+            startService(mEcosedServicesIntent)
+            bindEcosed(this@run)
 
-            Toast.makeText(this, "client", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this@run, "client", Toast.LENGTH_SHORT).show()
+
         }
 
         override fun onEcosedMethodCall(call: EcosedMethodCall, result: EcosedResult) {
@@ -795,13 +828,14 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
         }
     }
 
-    private val mService = object : EcosedPlugin(), ServiceWrapper,
+
+    private val mService = object : EcosedPlugin(), ServiceWrapper, ServiceConnection,
         Shizuku.OnBinderReceivedListener,
         Shizuku.OnBinderDeadListener,
         Shizuku.OnRequestPermissionResultListener {
 
         override val channel: String
-            get() = "ecosed_service"
+            get() = serviceChannelName
 
         override fun getBinder(intent: Intent): IBinder {
             return object : EcosedKit.Stub() {
@@ -816,6 +850,17 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
             }
         }
 
+        override fun addListener(): Unit = let { listener ->
+            Shizuku.addBinderReceivedListener(listener)
+            Shizuku.addBinderDeadListener(listener)
+            Shizuku.addRequestPermissionResultListener(listener)
+        }
+
+        override fun removeListener(): Unit = let { listener ->
+            Shizuku.removeBinderDeadListener(listener)
+            Shizuku.removeBinderReceivedListener(listener)
+            Shizuku.removeRequestPermissionResultListener(listener)
+        }
 
         override fun onBinderReceived() {
 
@@ -828,12 +873,52 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
         override fun onRequestPermissionResult(requestCode: Int, grantResult: Int) {
 
         }
+
+        override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
+
+            mIUserService = IUserService.Stub.asInterface(binder)
+
+//            if (binder != null && binder.pingBinder()) {
+//                mIUserService = IUserService.Stub.asInterface(binder)
+//
+//
+//            }
+
+//            when (name?.className) {
+//                UserService().javaClass.name -> if ((binder != null) and (binder?.pingBinder() == true)) {
+//                    mIUserService = IUserService.Stub.asInterface(binder)
+//
+//                    Toast.makeText(this, "shizuku服务获取成功", Toast.LENGTH_SHORT).show()
+//                }
+//
+//                this@EcosedKitPlugin.javaClass.name -> if ((binder != null) and (binder?.pingBinder() == true)) {
+//
+//                }
+//
+//                else -> {
+//
+//                }
+//            }
+
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+
+        }
     }
 
     private val mNative = object : EcosedPlugin(), NativeWrapper {
 
         override val channel: String
-            get() = "ecosed_native"
+            get() = nativeChannelName
+
+        override fun onEcosedMethodCall(call: EcosedMethodCall, result: EcosedResult) {
+            super.onEcosedMethodCall(call, result)
+            when (call.method) {
+                "main" -> main()
+                else -> result.notImplemented()
+            }
+        }
 
         override fun main() {
             main(arrayOf(""))
@@ -844,14 +929,19 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
      * Shizuku调用类
      */
 
-    private class UserService : IUserService.Stub() {
+    class UserService : IUserService.Stub() {
+
 
         override fun destroy() {
-            exitProcess(0)
+            exitProcess(status = 0)
         }
 
         override fun exit() {
-            exitProcess(0)
+            exitProcess(status = 0)
+        }
+
+        override fun poem() {
+            Log.d(tag, "Shizuku - poem")
         }
     }
 
@@ -897,12 +987,20 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
     /**
      * 客户端回调调用单元
      * 绑定解绑调用客户端回调
-     * @param function 客户端回调单元
-     * @return function 返回值
+     * @param content 客户端回调单元
+     * @return content 返回值
      */
     private fun <R> callBackUnit(
-        function: EcosedCallBack.() -> R,
-    ): R = mClient.function()
+        content: EcosedCallBack.() -> R,
+    ): R = mClient.content()
+
+    private fun <R> serviceUnit(
+        content: ServiceWrapper.() -> R,
+    ): R = mService.content()
+
+    private fun <R> nativeUnit(
+        content: NativeWrapper.() -> R,
+    ): R = mNative.content()
 
     /**
      ***********************************************************************************************
@@ -1067,6 +1165,10 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
 
     private companion object {
 
+        fun build(): EcosedKitPlugin {
+            return EcosedKitPlugin()
+        }
+
         init {
             System.loadLibrary("ecosed")
         }
@@ -1081,9 +1183,13 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
         const val frameworkChannelName: String = "ecosed_framework"
         const val engineChannelName: String = "ecosed_engine"
         const val clientChannelName: String = "ecosed_client"
+        const val serviceChannelName: String = "ecosed_service"
+        const val nativeChannelName: String = "ecosed_native"
 
         const val notificationId = 1
         const val notificationChannel: String = "ecosed_notification"
+
+        const val action: String = "io.ecosed.kit.action"
 
 
         const val mMethodDebug: String = "is_binding"
@@ -1094,6 +1200,5 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
         const val mMethodShizukuVersion: String = "shizuku_version"
 
 
-        const val action: String = "io.ecosed.kit.action"
     }
 }
