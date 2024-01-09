@@ -126,6 +126,10 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
             notificationManager.createNotificationChannel(channel)
         }
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            PermissionUtils.permission(Manifest.permission.POST_NOTIFICATIONS).request()
+        }
+
         val notification = buildNotification()
         startForeground(notificationId, notification)
 
@@ -1152,11 +1156,6 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
     }
 
     private fun buildNotification(): Notification {
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            PermissionUtils.permission(Manifest.permission.POST_NOTIFICATIONS).request()
-        }
-
         return NotificationCompat.Builder(
             this@EcosedKitPlugin,
             notificationChannel
