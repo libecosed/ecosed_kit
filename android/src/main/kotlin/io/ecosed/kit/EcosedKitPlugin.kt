@@ -76,7 +76,7 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
 
 
     private val mUserServiceArgs = Shizuku.UserServiceArgs(
-        ComponentName(AppUtils.getAppPackageName(), UserService().javaClass.name)
+        ComponentName(AppUtils.getAppPackageName(), UserService::class.java.name)
     )
         .daemon(false)
         .processNameSuffix("service")
@@ -87,17 +87,17 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
     override fun onCreate() {
         super<Service>.onCreate()
         // 添加Shizuku监听
+        Shizuku.addBinderReceivedListener(mService)
+        Shizuku.addBinderDeadListener(mService)
+        Shizuku.addRequestPermissionResultListener(mService)
 
-        serviceUnit {
-            addListener()
-        }
 
         check()
 
         // 绑定Shizuku服务
-  //      Shizuku.bindUserService(mUserServiceArgs, mService)
+        //Shizuku.bindUserService(mUserServiceArgs, this@EcosedKitPlugin)
 
-//        mIUserService!!.poem()
+       // mIUserService!!.poem()
 
 
         //调用Shizuku代码: mIUserService.方法名()
@@ -130,6 +130,7 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
         startForeground(notificationId, notification)
 
 
+
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -154,12 +155,13 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
 
     override fun onDestroy() {
         super<Service>.onDestroy()
+        // 移除Shizuku监听
+        Shizuku.removeBinderDeadListener(mService)
+        Shizuku.removeBinderReceivedListener(mService)
+        Shizuku.removeRequestPermissionResultListener(mService)
 
-        serviceUnit {
-            removeListener()
-        }
         // 解绑Shizuku服务
-        //  Shizuku.unbindUserService(mUserServiceArgs, mService, true)
+        Shizuku.unbindUserService(mUserServiceArgs, this@EcosedKitPlugin, true)
     }
 
     // 插件附加到引擎
@@ -258,47 +260,117 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
     }
 
     override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-        mAIDL = EcosedKit.Stub.asInterface(service)
-        when {
-            mAIDL != null -> {
-                mIsBind = true
-                callBackUnit {
-                    onEcosedConnected()
+        when (name?.className) {
+            UserService().javaClass.name -> {
+                if ((service != null) and (service?.pingBinder() == true)) {
+                    mIUserService = IUserService.Stub.asInterface(service)
+                }
+                when {
+                    mIUserService != null -> {
+                        Toast.makeText(this@EcosedKitPlugin, "mIUserService", Toast.LENGTH_SHORT).show()
+                    }
+
+                    else -> if (mFullDebug) Log.e(
+                        tag, "UserService接口获取失败 - onServiceConnected"
+                    )
+                }
+                when {
+                    mFullDebug -> Log.i(
+                        tag, "服务已连接 - onServiceConnected"
+                    )
                 }
             }
 
-            else -> if (mFullDebug) Log.e(
-                tag, "AIDL接口获取失败 - onServiceConnected"
-            )
-        }
-        when {
-            mFullDebug -> Log.i(
-                tag, "服务已连接 - onServiceConnected"
-            )
+            this@EcosedKitPlugin.javaClass.name -> {
+                if ((service != null) and (service?.pingBinder() == true)) {
+                    mAIDL = EcosedKit.Stub.asInterface(service)
+                }
+                when {
+                    mAIDL != null -> {
+                        mIsBind = true
+                        callBackUnit {
+                            onEcosedConnected()
+                        }
+                    }
+
+                    else -> if (mFullDebug) Log.e(
+                        tag, "AIDL接口获取失败 - onServiceConnected"
+                    )
+                }
+                when {
+                    mFullDebug -> Log.i(
+                        tag, "服务已连接 - onServiceConnected"
+                    )
+                }
+            }
+
+            else -> {
+
+            }
         }
     }
 
     override fun onServiceDisconnected(name: ComponentName?) {
-        mIsBind = false
-        mAIDL = null
-        unbindService(this)
-        callBackUnit {
-            onEcosedDisconnected()
+        when (name?.className) {
+            UserService().javaClass.name -> {
+
+            }
+
+            this@EcosedKitPlugin.javaClass.name -> {
+                mIsBind = false
+                mAIDL = null
+                unbindService(this)
+                callBackUnit {
+                    onEcosedDisconnected()
+                }
+                if (mFullDebug) {
+                    Log.i(tag, "服务意外断开连接 - onServiceDisconnected")
+                }
+            }
+
+            else -> {
+
+            }
         }
-        if (mFullDebug) {
-            Log.i(tag, "服务意外断开连接 - onServiceDisconnected")
-        }
+
     }
 
     override fun onBindingDied(name: ComponentName?) {
         super.onBindingDied(name)
+
+        when (name?.className) {
+            UserService().javaClass.name -> {
+
+            }
+
+            this@EcosedKitPlugin.javaClass.name -> {
+
+            }
+
+            else -> {
+
+            }
+        }
     }
 
     override fun onNullBinding(name: ComponentName?) {
         super.onNullBinding(name)
-        if (mFullDebug) {
-            Log.e(tag, "Binder为空 - onNullBinding")
+        when (name?.className) {
+            UserService().javaClass.name -> {
+
+            }
+
+            this@EcosedKitPlugin.javaClass.name -> {
+                if (mFullDebug) {
+                    Log.e(tag, "Binder为空 - onNullBinding")
+                }
+            }
+
+            else -> {
+
+            }
         }
+
     }
 
     /**
@@ -391,9 +463,6 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
 
     private interface ServiceWrapper {
         fun getBinder(intent: Intent): IBinder
-
-        fun addListener()
-        fun removeListener()
     }
 
     private interface NativeWrapper {
@@ -806,6 +875,8 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
 
                 "getPlatformVersion" -> result.success("Android API ${Build.VERSION.SDK_INT}")
 
+                "shizuku" -> mIUserService?.poem()
+
                 mMethodShizukuVersion -> result.success(getShizukuVersion())
                 else -> result.notImplemented()
             }
@@ -829,7 +900,7 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
     }
 
 
-    private val mService = object : EcosedPlugin(), ServiceWrapper, ServiceConnection,
+    private val mService = object : EcosedPlugin(), ServiceWrapper,
         Shizuku.OnBinderReceivedListener,
         Shizuku.OnBinderDeadListener,
         Shizuku.OnRequestPermissionResultListener {
@@ -850,60 +921,16 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
             }
         }
 
-        override fun addListener(): Unit = let { listener ->
-            Shizuku.addBinderReceivedListener(listener)
-            Shizuku.addBinderDeadListener(listener)
-            Shizuku.addRequestPermissionResultListener(listener)
-        }
-
-        override fun removeListener(): Unit = let { listener ->
-            Shizuku.removeBinderDeadListener(listener)
-            Shizuku.removeBinderReceivedListener(listener)
-            Shizuku.removeRequestPermissionResultListener(listener)
-        }
-
         override fun onBinderReceived() {
-
+            Toast.makeText(this@EcosedKitPlugin, "onBinderReceived", Toast.LENGTH_SHORT).show()
         }
 
         override fun onBinderDead() {
-
+            Toast.makeText(this@EcosedKitPlugin, "onBinderDead", Toast.LENGTH_SHORT).show()
         }
 
         override fun onRequestPermissionResult(requestCode: Int, grantResult: Int) {
-
-        }
-
-        override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
-
-            mIUserService = IUserService.Stub.asInterface(binder)
-
-//            if (binder != null && binder.pingBinder()) {
-//                mIUserService = IUserService.Stub.asInterface(binder)
-//
-//
-//            }
-
-//            when (name?.className) {
-//                UserService().javaClass.name -> if ((binder != null) and (binder?.pingBinder() == true)) {
-//                    mIUserService = IUserService.Stub.asInterface(binder)
-//
-//                    Toast.makeText(this, "shizuku服务获取成功", Toast.LENGTH_SHORT).show()
-//                }
-//
-//                this@EcosedKitPlugin.javaClass.name -> if ((binder != null) and (binder?.pingBinder() == true)) {
-//
-//                }
-//
-//                else -> {
-//
-//                }
-//            }
-
-        }
-
-        override fun onServiceDisconnected(name: ComponentName?) {
-
+            Toast.makeText(this@EcosedKitPlugin, "onRequestPermissionResult", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -1164,10 +1191,6 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
     }
 
     private companion object {
-
-        fun build(): EcosedKitPlugin {
-            return EcosedKitPlugin()
-        }
 
         init {
             System.loadLibrary("ecosed")
