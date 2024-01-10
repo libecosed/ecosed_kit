@@ -457,7 +457,7 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
     }
 
     private interface FactoryWrapper {
-        fun getPlatformView(): Any
+        val getPlatformView: Any
         val mPlatformView: EcosedPlugin
     }
 
@@ -725,11 +725,11 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
             mPlatformViewContext = context
             mPlatformViewId = viewId
             mPlatformViewArgs = args
-            return@platformViewUnit getPlatformView() as PlatformView
+            return@platformViewUnit getPlatformView as PlatformView
         }
 
-        override fun getPlatformView(): Any {
-            return object : EcosedPlugin(), PlatformView {
+        override val getPlatformView: Any
+            get() = object : EcosedPlugin(), PlatformView {
 
                 override fun getView(): View = frameworkUnit {
                     getView(
@@ -745,12 +745,10 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
 
                 override val channel: String
                     get() = "ecosed_platform"
-
             }
-        }
 
         override val mPlatformView: EcosedPlugin
-            get() = getPlatformView() as EcosedPlugin
+            get() = getPlatformView as EcosedPlugin
     }
 
 
@@ -1304,6 +1302,4 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
 
 
     }
-
-
 }
