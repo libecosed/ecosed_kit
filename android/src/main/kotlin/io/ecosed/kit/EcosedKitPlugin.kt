@@ -18,8 +18,8 @@ import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
 import android.util.Log
+import android.view.View
 import android.widget.Toast
-import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle
@@ -32,6 +32,9 @@ import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.embedding.engine.plugins.lifecycle.FlutterLifecycleAdapter
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+import io.flutter.plugin.common.StandardMessageCodec
+import io.flutter.plugin.platform.PlatformView
+import io.flutter.plugin.platform.PlatformViewFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -40,6 +43,7 @@ import kotlin.system.exitProcess
 
 class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware,
     LifecycleOwner, DefaultLifecycleObserver, ServiceConnection {
+
 
     /** Flutter插件方法通道 */
     private lateinit var mMethodChannel: MethodChannel
@@ -74,6 +78,10 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
 
     private lateinit var poem: ArrayList<String>
 
+    private var mPlatformViewContext: Context? = null
+    private var mPlatformViewId: Int = -1
+    private var mPlatformViewArgs: Any? = null
+
 
     private val mUserServiceArgs = Shizuku.UserServiceArgs(
         ComponentName(AppUtils.getAppPackageName(), UserService::class.java.name)
@@ -97,7 +105,7 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
         // 绑定Shizuku服务
         //Shizuku.bindUserService(mUserServiceArgs, this@EcosedKitPlugin)
 
-       // mIUserService!!.poem()
+        // mIUserService!!.poem()
 
 
         //调用Shizuku代码: mIUserService.方法名()
@@ -132,7 +140,6 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
 
         val notification = buildNotification()
         startForeground(notificationId, notification)
-
 
 
     }
@@ -171,6 +178,7 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
     // 插件附加到引擎
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         mMethodChannel = MethodChannel(flutterPluginBinding.binaryMessenger, flutterChannelName)
+        flutterPluginBinding.platformViewRegistry.registerViewFactory(viewTypeId, mFactory)
         mMethodChannel.setMethodCallHandler(this@EcosedKitPlugin)
     }
 
@@ -271,7 +279,8 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
                 }
                 when {
                     mIUserService != null -> {
-                        Toast.makeText(this@EcosedKitPlugin, "mIUserService", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@EcosedKitPlugin, "mIUserService", Toast.LENGTH_SHORT)
+                            .show()
                     }
 
                     else -> if (mFullDebug) Log.e(
@@ -374,7 +383,6 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
 
             }
         }
-
     }
 
     /**
@@ -388,6 +396,8 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
         fun getLifecycle(lifecycle: Lifecycle)
         fun attach()
         fun onMethodCall(call: MethodCallProxy, result: ResultProxy)
+        fun getView(context: Context?, viewId: Int, args: Any?): View
+        fun dispose()
     }
 
     private interface MethodCallProxy {
@@ -444,6 +454,11 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
          * 处理对未实现方法的调用.
          */
         fun notImplemented()
+    }
+
+    private interface FactoryWrapper {
+        fun getPlatformView(): Any
+        val mPlatformView: EcosedPlugin
     }
 
     private interface EngineWrapper : FlutterPluginProxy {
@@ -700,6 +715,45 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
      ***********************************************************************************************
      */
 
+    private val mFactory = object : PlatformViewFactory(
+        StandardMessageCodec.INSTANCE
+    ), FactoryWrapper {
+
+        override fun create(
+            context: Context?, viewId: Int, args: Any?
+        ): PlatformView = platformViewUnit {
+            mPlatformViewContext = context
+            mPlatformViewId = viewId
+            mPlatformViewArgs = args
+            return@platformViewUnit getPlatformView() as PlatformView
+        }
+
+        override fun getPlatformView(): Any {
+            return object : EcosedPlugin(), PlatformView {
+
+                override fun getView(): View = frameworkUnit {
+                    getView(
+                        context = mPlatformViewContext,
+                        viewId = mPlatformViewId,
+                        args = mPlatformViewArgs
+                    )
+                }
+
+                override fun dispose() = frameworkUnit {
+                    dispose()
+                }
+
+                override val channel: String
+                    get() = "ecosed_platform"
+
+            }
+        }
+
+        override val mPlatformView: EcosedPlugin
+            get() = getPlatformView() as EcosedPlugin
+    }
+
+
     private val mFramework = object : EcosedPlugin(), FlutterPluginProxy {
 
         override val channel: String
@@ -723,6 +777,14 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
 
         override fun onMethodCall(call: MethodCallProxy, result: ResultProxy) = engineUnit {
             onMethodCall(call = call, result = result)
+        }
+
+        override fun getView(context: Context?, viewId: Int, args: Any?): View = engineUnit {
+            return@engineUnit getView(context = context, viewId = viewId, args = args)
+        }
+
+        override fun dispose() = engineUnit {
+            dispose()
         }
 
         override fun attach() = engineUnit {
@@ -774,6 +836,14 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
             } catch (e: Exception) {
                 result.error(tag, "", Log.getStackTraceString(e))
             }
+        }
+
+        override fun getView(context: Context?, viewId: Int, args: Any?): View {
+            return View(this)
+        }
+
+        override fun dispose() {
+
         }
 
         /**
@@ -934,7 +1004,8 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
         }
 
         override fun onRequestPermissionResult(requestCode: Int, grantResult: Int) {
-            Toast.makeText(this@EcosedKitPlugin, "onRequestPermissionResult", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this@EcosedKitPlugin, "onRequestPermissionResult", Toast.LENGTH_SHORT)
+                .show()
         }
     }
 
@@ -976,6 +1047,7 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
         }
     }
 
+
     /**
      ***********************************************************************************************
      * 分类: 调用单元
@@ -1010,10 +1082,12 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
      */
     private fun <R> pluginUnit(
         content: (ArrayList<EcosedPlugin>, PluginBinding) -> R
-    ): R = content.invoke(
-        arrayListOf(mFramework, mEngine, mClient, mService, mNative),
-        PluginBinding(context = mActivity, debug = mBaseDebug)
-    )
+    ): R = platformViewUnit {
+        content.invoke(
+            arrayListOf(mPlatformView, mFramework, mEngine, mClient, mService, mNative),
+            PluginBinding(context = mActivity, debug = mBaseDebug)
+        )
+    }
 
     /**
      * 客户端回调调用单元
@@ -1023,15 +1097,20 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
      */
     private fun <R> callBackUnit(
         content: EcosedCallBack.() -> R,
-    ): R = mClient.content()
+    ): R = content.invoke(mClient)
 
     private fun <R> serviceUnit(
         content: ServiceWrapper.() -> R,
-    ): R = mService.content()
+    ): R = content.invoke(mService)
 
     private fun <R> nativeUnit(
         content: NativeWrapper.() -> R,
-    ): R = mNative.content()
+    ): R = content.invoke(mNative)
+
+    private fun <R> platformViewUnit(
+        content: FactoryWrapper.() -> R
+    ): R = content.invoke(mFactory)
+
 
     /**
      ***********************************************************************************************
@@ -1198,6 +1277,8 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
         // 打印日志的标签
         const val tag: String = "EcosedKitPlugin"
 
+        const val viewTypeId: String = "ecosed_view"
+
         // Flutter插件通道名称
         const val flutterChannelName = "ecosed_kit"
 
@@ -1223,4 +1304,6 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
 
 
     }
+
+
 }
