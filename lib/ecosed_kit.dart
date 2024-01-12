@@ -25,4 +25,8 @@ class EcosedKit {
   Widget ecosedApp(Widget child) {
     return Stack(children: [child, _banner()]);
   }
+
+  Widget manager() {
+    return Container();
+  }
 }

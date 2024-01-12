@@ -1,7 +1,7 @@
 name: ecosed_kit
 description: "EcosedKit"
 version: 0.0.1
-homepage: https://github.com/ecosed/ecosed_kit
+homepage: https://github.com/libecosed/ecosed_kit
 environment:
   sdk: '>=3.2.2 <4.0.0'
   flutter: '>=3.3.0'

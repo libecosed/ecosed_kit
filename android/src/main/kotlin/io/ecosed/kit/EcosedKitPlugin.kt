@@ -41,6 +41,7 @@ import kotlinx.coroutines.launch
 import rikka.shizuku.Shizuku
 import kotlin.system.exitProcess
 
+
 class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware,
     LifecycleOwner, DefaultLifecycleObserver, ServiceConnection {
 
@@ -87,6 +88,25 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
         .debuggable(mFullDebug)
         .version(AppUtils.getAppVersionCode())
 
+
+    private fun checkPermission(code: Int): Boolean {
+        if (Shizuku.isPreV11()) {
+            // Pre-v11 is unsupported
+            return false
+        }
+        return if (Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED) {
+            // Granted
+            true
+        } else if (Shizuku.shouldShowRequestPermissionRationale()) {
+            // Users choose "Deny and don't ask again"
+            false
+        } else {
+            // Request the permission
+            Shizuku.requestPermission(code)
+            false
+        }
+    }
+
     override fun onCreate() {
         super<Service>.onCreate()
         // 添加Shizuku监听
@@ -94,11 +114,63 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
         Shizuku.addBinderDeadListener(mService)
         Shizuku.addRequestPermissionResultListener(mService)
 
+        // 申请弹出通知权限
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val post = PermissionUtils.permission(Manifest.permission.POST_NOTIFICATIONS)
 
-        check()
+            PermissionUtils.isGranted(Manifest.permission.POST_NOTIFICATIONS)
+            //post.callback { isAllGranted, granted, deniedForever, denied ->  }
+            post.request()
+        }
+
+
+
+        // 申请Shizuku权限
+
+        checkPermission(0)
+
+
+//        if (AppUtils.isAppInstalled(EcosedManifest.ShizukuPackage)) {
+//
+//        } else {
+//
+//        }
+//        try {
+//            if (Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED){
+//                Shizuku.requestPermission(0)
+//            } else {
+//                // 有权限
+//            }
+//        } catch (e: Exception) {
+//            if (e.javaClass == IllegalStateException().javaClass) {
+//                // 没激活
+//            }
+//        }
+
+
+
+
+
+        // 申请签名欺骗权限
+        val post = PermissionUtils.permission(EcosedManifest.fakePackageSignature)
+        post.callback { isAllGranted, granted, deniedForever, denied ->  }
+        post.request()
+        // 检查GMS
+
+//        val code = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(this@EcosedKitPlugin)
+//        if (code == ConnectionResult.SUCCESS) {
+//            // 有gms
+//        } else {
+//            GoogleApiAvailability.getInstance().makeGooglePlayServicesAvailable(mActivity)
+//
+//            if (GoogleApiAvailability.getInstance().isUserResolvableError(code)){
+//                GoogleApiAvailability.getInstance().getErrorDialog(mActivity, code, 200)?.show()
+//            }
+//        }
+
 
         // 绑定Shizuku服务
-        //Shizuku.bindUserService(mUserServiceArgs, this@EcosedKitPlugin)
+        Shizuku.bindUserService(mUserServiceArgs, this@EcosedKitPlugin)
 
         poem = arrayListOf()
         poem.add("不向焦虑与抑郁投降，这个世界终会有我们存在的地方。")
@@ -124,9 +196,7 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
             notificationManager.createNotificationChannel(channel)
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            PermissionUtils.permission(Manifest.permission.POST_NOTIFICATIONS).request()
-        }
+
 
         val notification = buildNotification()
         startForeground(notificationId, notification)
@@ -1134,22 +1204,6 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
         }
     }
 
-    private fun check() {
-        try {
-            if (Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
-                // 还没权限
-
-                //申请权限
-                Shizuku.requestPermission(0)
-            } else {
-                // 已经有权限了
-            }
-        } catch (e: Exception) {
-            if (e.javaClass == IllegalStateException().javaClass) {
-                //Shizuku还没激活
-            }
-        }
-    }
 
     private fun frameworkVersion(): String {
         return AppUtils.getAppVersionName()
@@ -1224,11 +1278,19 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
         }
     }
 
+    private object EcosedManifest {
+        const val ShizukuPackage: String = "moe.shizuku.privileged.api"
+
+        const val fakePackageSignature: String = "android.permission.FAKE_PACKAGE_SIGNATURE"
+    }
+
     private companion object {
 
         init {
             System.loadLibrary("ecosed")
         }
+
+
 
         // 打印日志的标签
         const val tag: String = "EcosedKitPlugin"
