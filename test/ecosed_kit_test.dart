@@ -22,6 +22,6 @@ void main() {
     MockEcosedKitPlatform fakePlatform = MockEcosedKitPlatform();
     EcosedKitPlatform.instance = fakePlatform;
 
-    expect(await ecosedKitPlugin.getPlatformVersion(), '42');
+    expect('await ecosedKitPlugin.getPlatformVersion()', '42');
   });
 }

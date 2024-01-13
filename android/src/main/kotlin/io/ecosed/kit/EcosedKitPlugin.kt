@@ -2,6 +2,8 @@ package io.ecosed.kit
 
 import android.Manifest
 import android.app.Activity
+import android.app.AlertDialog
+import android.app.Dialog
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -19,8 +21,10 @@ import android.os.Bundle
 import android.os.IBinder
 import android.util.Log
 import android.view.View
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
@@ -152,9 +156,13 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
 
 
         // 申请签名欺骗权限
-        val post = PermissionUtils.permission(EcosedManifest.fakePackageSignature)
-        post.callback { isAllGranted, granted, deniedForever, denied ->  }
-        post.request()
+        val fake = PermissionUtils.permission(EcosedManifest.fakePackageSignature)
+        fake.callback { isAllGranted, granted, deniedForever, denied ->  }
+        fake.request()
+
+
+
+
         // 检查GMS
 
 //        val code = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(this@EcosedKitPlugin)
@@ -1280,6 +1288,7 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
 
     private object EcosedManifest {
         const val ShizukuPackage: String = "moe.shizuku.privileged.api"
+        const val GmsPackage: String = "com.google.android.gms"
 
         const val fakePackageSignature: String = "android.permission.FAKE_PACKAGE_SIGNATURE"
     }
