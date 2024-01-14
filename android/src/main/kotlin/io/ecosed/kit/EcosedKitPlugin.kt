@@ -141,6 +141,7 @@ open class EcosedKitPlugin : Fragment(), FlutterPlugin, MethodChannel.MethodCall
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super<Fragment>.onCreate(savedInstanceState)
+
     }
 
     override fun onCreateView(
@@ -164,10 +165,10 @@ open class EcosedKitPlugin : Fragment(), FlutterPlugin, MethodChannel.MethodCall
     }
 
     // 插件附加到引擎
-    override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
-        mMethodChannel = MethodChannel(flutterPluginBinding.binaryMessenger, flutterChannelName)
+    override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+        mMethodChannel = MethodChannel(binding.binaryMessenger, flutterChannelName)
         mMethodChannel.setMethodCallHandler(this@EcosedKitPlugin)
-        flutterPluginBinding.platformViewRegistry.registerViewFactory(
+        binding.platformViewRegistry.registerViewFactory(
             viewTypeId, object : PlatformViewFactory(StandardMessageCodec.INSTANCE) {
 
                 override fun create(
