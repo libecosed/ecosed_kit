@@ -11,8 +11,9 @@
             android:value="@string/fake_signature" />
 
         <service
-            android:name=".EcosedKitPlugin"
+            android:name=".EcosedKitPlugin$EcosedService"
             android:enabled="true"
+            android:foregroundServiceType="dataSync"
             android:exported="false">
             <intent-filter>
                 <action android:name="io.ecosed.kit.action" />

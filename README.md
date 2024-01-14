@@ -1,6 +1,6 @@
 # ecosed_kit
 
-EcosedKit
+EcosedKit - A relatively abstract Flutter Plugin
 
 ## Getting Started
 

@@ -1,3 +1,5 @@
+import 'package:ecosed_kit/ecosed_kit_platform.dart';
+import 'package:ecosed_kit/method_channel_ecosed_kit.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ecosed_kit/ecosed_kit.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';

@@ -1,4 +1,4 @@
-import 'package:ecosed_kit/ecosed_kit.dart';
+import 'package:ecosed_kit/method_channel_ecosed_kit.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
