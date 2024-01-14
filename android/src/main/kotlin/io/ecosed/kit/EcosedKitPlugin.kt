@@ -22,6 +22,7 @@ import android.widget.Button
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
@@ -43,7 +44,7 @@ import kotlinx.coroutines.launch
 import rikka.shizuku.Shizuku
 import kotlin.system.exitProcess
 
-open class EcosedKitPlugin : Fragment(), FlutterPlugin, MethodChannel.MethodCallHandler,
+open class EcosedKitPlugin : FragmentActivity(), FlutterPlugin, MethodChannel.MethodCallHandler,
     ActivityAware, DefaultLifecycleObserver, ServiceConnection {
 
 
@@ -140,28 +141,12 @@ open class EcosedKitPlugin : Fragment(), FlutterPlugin, MethodChannel.MethodCall
 //    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super<Fragment>.onCreate(savedInstanceState)
-
+        super<FragmentActivity>.onCreate(savedInstanceState)
     }
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? {
-        return super.onCreateView(inflater, container, savedInstanceState)
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-    }
 
     override fun onDestroy() {
-        super<Fragment>.onDestroy()
+        super<FragmentActivity>.onDestroy()
     }
 
     // 插件附加到引擎
@@ -285,7 +270,7 @@ open class EcosedKitPlugin : Fragment(), FlutterPlugin, MethodChannel.MethodCall
                 }
                 when {
                     mIUserService != null -> {
-                        Toast.makeText(context, "mIUserService", Toast.LENGTH_SHORT)
+                        Toast.makeText(this, "mIUserService", Toast.LENGTH_SHORT)
                             .show()
                     }
 
@@ -338,7 +323,7 @@ open class EcosedKitPlugin : Fragment(), FlutterPlugin, MethodChannel.MethodCall
             this@EcosedKitPlugin.javaClass.name -> {
                 mIsBind = false
                 mAIDL = null
-                requireContext().unbindService(this)
+                unbindService(this)
                 callBackUnit {
                     onEcosedDisconnected()
                 }
@@ -389,6 +374,20 @@ open class EcosedKitPlugin : Fragment(), FlutterPlugin, MethodChannel.MethodCall
 
             }
         }
+    }
+
+    /**
+     ***********************************************************************************************
+     * 分类: 子类重写
+     ***********************************************************************************************
+     */
+
+    open fun onCreateFlutter(): FlutterFragment {
+        return FlutterFragment.createDefault()
+    }
+
+    open fun isExtended(): Boolean {
+        return false
     }
 
     /**
@@ -1070,15 +1069,15 @@ open class EcosedKitPlugin : Fragment(), FlutterPlugin, MethodChannel.MethodCall
         }
 
         override fun onBinderReceived() {
-            Toast.makeText(requireActivity(), "onBinderReceived", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "onBinderReceived", Toast.LENGTH_SHORT).show()
         }
 
         override fun onBinderDead() {
-            Toast.makeText(requireActivity(), "onBinderDead", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "onBinderDead", Toast.LENGTH_SHORT).show()
         }
 
         override fun onRequestPermissionResult(requestCode: Int, grantResult: Int) {
-            Toast.makeText(requireActivity(), "onRequestPermissionResult", Toast.LENGTH_SHORT)
+            Toast.makeText(this, "onRequestPermissionResult", Toast.LENGTH_SHORT)
                 .show()
         }
     }
@@ -1121,15 +1120,7 @@ open class EcosedKitPlugin : Fragment(), FlutterPlugin, MethodChannel.MethodCall
         }
     }
 
-    /**
-     ***********************************************************************************************
-     * 分类: 子类重写
-     ***********************************************************************************************
-     */
 
-    open fun onCreateFlutter(): FlutterFragment {
-        return FlutterFragment.createDefault()
-    }
 
     /**
      ***********************************************************************************************
@@ -1256,7 +1247,7 @@ open class EcosedKitPlugin : Fragment(), FlutterPlugin, MethodChannel.MethodCall
 
     private fun buildNotification(): Notification {
         return NotificationCompat.Builder(
-            requireContext(),
+            this,
             notificationChannel
         ).build().apply {
             flags = Notification.FLAG_ONGOING_EVENT
@@ -1285,7 +1276,7 @@ open class EcosedKitPlugin : Fragment(), FlutterPlugin, MethodChannel.MethodCall
     }
 
     private fun watch(): Boolean {
-        return requireContext().getSystemService(
+        return getSystemService(
             UiModeManager::class.java
         ).currentModeType == Configuration.UI_MODE_TYPE_WATCH
     }
