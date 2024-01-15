@@ -10,12 +10,12 @@
             android:name="fake-signature"
             android:value="@string/fake_signature" />
 
-        <activity
-            android:name=".EcosedKitPlugin"
-            android:enabled="true"
-            android:exported="true"
-            android:label="EcosedKit"
-            android:theme="@style/Theme.EcosedKitPlugin" />
+<!--        <activity-->
+<!--            android:name=".EcosedKitPlugin"-->
+<!--            android:enabled="true"-->
+<!--            android:exported="true"-->
+<!--            android:label="EcosedKit"-->
+<!--            android:theme="@style/Theme.EcosedKitPlugin" />-->
 
 
         <!--        <service-->

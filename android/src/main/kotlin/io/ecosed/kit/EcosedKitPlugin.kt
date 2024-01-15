@@ -22,13 +22,14 @@ import android.widget.Button
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import com.blankj.utilcode.util.AppUtils
 import com.blankj.utilcode.util.PermissionUtils
 import io.flutter.embedding.android.FlutterFragment
+import io.flutter.embedding.android.FlutterView
+import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
@@ -44,7 +45,8 @@ import kotlinx.coroutines.launch
 import rikka.shizuku.Shizuku
 import kotlin.system.exitProcess
 
-open class EcosedKitPlugin : FragmentActivity(), FlutterPlugin, MethodChannel.MethodCallHandler,
+
+open class EcosedKitPlugin : Fragment(), FlutterPlugin, MethodChannel.MethodCallHandler,
     ActivityAware, DefaultLifecycleObserver, ServiceConnection {
 
 
@@ -141,12 +143,29 @@ open class EcosedKitPlugin : FragmentActivity(), FlutterPlugin, MethodChannel.Me
 //    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super<FragmentActivity>.onCreate(savedInstanceState)
+        super<Fragment>.onCreate(savedInstanceState)
+
+    }
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        return super.onCreateView(inflater, container, savedInstanceState)
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
     }
 
 
     override fun onDestroy() {
-        super<FragmentActivity>.onDestroy()
+        super<Fragment>.onDestroy()
     }
 
     // 插件附加到引擎
@@ -270,7 +289,7 @@ open class EcosedKitPlugin : FragmentActivity(), FlutterPlugin, MethodChannel.Me
                 }
                 when {
                     mIUserService != null -> {
-                        Toast.makeText(this, "mIUserService", Toast.LENGTH_SHORT)
+                        Toast.makeText(requireActivity(), "mIUserService", Toast.LENGTH_SHORT)
                             .show()
                     }
 
@@ -323,7 +342,7 @@ open class EcosedKitPlugin : FragmentActivity(), FlutterPlugin, MethodChannel.Me
             this@EcosedKitPlugin.javaClass.name -> {
                 mIsBind = false
                 mAIDL = null
-                unbindService(this)
+                requireContext().unbindService(this)
                 callBackUnit {
                     onEcosedDisconnected()
                 }
@@ -1194,6 +1213,19 @@ open class EcosedKitPlugin : FragmentActivity(), FlutterPlugin, MethodChannel.Me
      ***********************************************************************************************
      */
 
+    private fun findFlutterView(view: View?): FlutterView? {
+        when (view) {
+            is FlutterView -> return view
+            is ViewGroup -> for (i in 0 until view.childCount) {
+                findFlutterView(view.getChildAt(i))?.let {
+                    return it
+                }
+            }
+            else -> return null
+        }
+        return null
+    }
+
     /**
      * 绑定服务
      * @param context 上下文
@@ -1247,7 +1279,7 @@ open class EcosedKitPlugin : FragmentActivity(), FlutterPlugin, MethodChannel.Me
 
     private fun buildNotification(): Notification {
         return NotificationCompat.Builder(
-            this,
+            requireContext(),
             notificationChannel
         ).build().apply {
             flags = Notification.FLAG_ONGOING_EVENT
@@ -1276,7 +1308,7 @@ open class EcosedKitPlugin : FragmentActivity(), FlutterPlugin, MethodChannel.Me
     }
 
     private fun watch(): Boolean {
-        return getSystemService(
+        return requireContext().getSystemService(
             UiModeManager::class.java
         ).currentModeType == Configuration.UI_MODE_TYPE_WATCH
     }
