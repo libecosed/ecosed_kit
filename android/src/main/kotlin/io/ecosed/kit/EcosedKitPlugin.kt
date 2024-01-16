@@ -25,11 +25,11 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
+import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.blankj.utilcode.util.AppUtils
 import com.blankj.utilcode.util.PermissionUtils
 import io.flutter.embedding.android.FlutterFragment
 import io.flutter.embedding.android.FlutterView
-import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
@@ -46,7 +46,7 @@ import rikka.shizuku.Shizuku
 import kotlin.system.exitProcess
 
 
-open class EcosedKitPlugin : Fragment(), FlutterPlugin, MethodChannel.MethodCallHandler,
+class EcosedKitPlugin : Fragment(), FlutterPlugin, MethodChannel.MethodCallHandler,
     ActivityAware, DefaultLifecycleObserver, ServiceConnection {
 
 
@@ -145,23 +145,11 @@ open class EcosedKitPlugin : Fragment(), FlutterPlugin, MethodChannel.MethodCall
     override fun onCreate(savedInstanceState: Bundle?) {
         super<Fragment>.onCreate(savedInstanceState)
 
+
+        val m = Manager.build(wrapper = mManager)
     }
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? {
-        return super.onCreateView(inflater, container, savedInstanceState)
-    }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-    }
 
 
     override fun onDestroy() {
@@ -395,19 +383,25 @@ open class EcosedKitPlugin : Fragment(), FlutterPlugin, MethodChannel.MethodCall
         }
     }
 
+
     /**
      ***********************************************************************************************
      * 分类: 子类重写
      ***********************************************************************************************
      */
 
+    open fun onCreateView(
+        content: View,
+        viewGroup: ViewGroup
+    ): View? {
+        return null
+    }
+
     open fun onCreateFlutter(): FlutterFragment {
         return FlutterFragment.createDefault()
     }
 
-    open fun isExtended(): Boolean {
-        return false
-    }
+
 
     /**
      ***********************************************************************************************
@@ -503,6 +497,21 @@ open class EcosedKitPlugin : Fragment(), FlutterPlugin, MethodChannel.MethodCall
         fun getBinder(intent: Intent): IBinder
         fun onCreate()
         fun onDestroy()
+    }
+
+    private interface ManagerWrapper {
+        fun onManagerCreate(
+            savedInstanceState: Bundle?
+        )
+        fun onManagerCreateView(
+            inflater: LayoutInflater,
+            container: ViewGroup?,
+            savedInstanceState: Bundle?
+        ): View?
+
+        fun onManagerViewCreated(view: View, savedInstanceState: Bundle?)
+        fun onManagerDestroyView()
+        fun onManagerDestroy()
     }
 
     private interface NativeWrapper {
@@ -734,6 +743,21 @@ open class EcosedKitPlugin : Fragment(), FlutterPlugin, MethodChannel.MethodCall
      * 分类: 关键内部类
      ***********************************************************************************************
      */
+
+    private val mAdapter: FragmentStateAdapter = object : FragmentStateAdapter(
+        childFragmentManager, lifecycle
+    ) {
+
+        override fun getItemCount(): Int {
+            return 0
+        }
+
+        override fun createFragment(position: Int): Fragment {
+            return Manager.build(
+                wrapper = mManager
+            )
+        }
+    }
 
     private val mFramework = object : EcosedPlugin(), FlutterPluginProxy {
 
@@ -1119,6 +1143,83 @@ open class EcosedKitPlugin : Fragment(), FlutterPlugin, MethodChannel.MethodCall
         }
     }
 
+    private val mManager = object : EcosedPlugin(), ManagerWrapper {
+
+        override val channel: String
+            get() = "ecosed_manger"
+
+        override fun onManagerCreate(savedInstanceState: Bundle?) {
+
+        }
+
+        override fun onManagerCreateView(
+            inflater: LayoutInflater,
+            container: ViewGroup?,
+            savedInstanceState: Bundle?
+        ): View? {
+            return null
+        }
+
+        override fun onManagerViewCreated(view: View, savedInstanceState: Bundle?) {
+
+        }
+
+        override fun onManagerDestroyView() {
+
+        }
+
+        override fun onManagerDestroy() {
+
+        }
+
+
+    }
+
+
+
+    private class Manager private constructor(wrapper: ManagerWrapper) : Fragment() {
+
+        private val mWrapper: ManagerWrapper = wrapper
+
+        override fun onCreate(savedInstanceState: Bundle?) {
+            super.onCreate(savedInstanceState)
+            mWrapper.onManagerCreate(savedInstanceState)
+        }
+
+        override fun onCreateView(
+            inflater: LayoutInflater,
+            container: ViewGroup?,
+            savedInstanceState: Bundle?
+        ): View? {
+            super.onCreateView(inflater, container, savedInstanceState)
+            return mWrapper.onManagerCreateView(inflater, container, savedInstanceState)
+        }
+
+        override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+            super.onViewCreated(view, savedInstanceState)
+            mWrapper.onManagerViewCreated(view, savedInstanceState)
+        }
+
+        override fun onDestroyView() {
+            super.onDestroyView()
+            mWrapper.onManagerDestroyView()
+        }
+
+        override fun onDestroy() {
+            super.onDestroy()
+            mWrapper.onManagerDestroy()
+        }
+
+        companion object {
+
+            fun build(
+                wrapper: ManagerWrapper
+            ): Manager = Manager(
+                wrapper = wrapper
+            )
+        }
+    }
+
     /**
      * Shizuku调用类
      */
@@ -1138,7 +1239,6 @@ open class EcosedKitPlugin : Fragment(), FlutterPlugin, MethodChannel.MethodCall
             Log.d("", "Shizuku - poem")
         }
     }
-
 
 
     /**
@@ -1176,7 +1276,7 @@ open class EcosedKitPlugin : Fragment(), FlutterPlugin, MethodChannel.MethodCall
     private fun <R> pluginUnit(
         content: (ArrayList<EcosedPlugin>, PluginBinding) -> R
     ): R = content.invoke(
-        arrayListOf(mFramework, mEngine, mClient, mService, mNative),
+        arrayListOf(mFramework, mEngine, mClient, mService, mManager, mNative),
         PluginBinding(context = mActivity, debug = mBaseDebug)
     )
 
@@ -1221,6 +1321,7 @@ open class EcosedKitPlugin : Fragment(), FlutterPlugin, MethodChannel.MethodCall
                     return it
                 }
             }
+
             else -> return null
         }
         return null
