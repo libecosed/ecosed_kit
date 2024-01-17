@@ -8,7 +8,7 @@ class EcosedBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Banner(
-        message: 'EcosedApp',
+        message: 'EcosedKit',
         textDirection: TextDirection.ltr,
         location: BannerLocation.topEnd,
         color: Colors.pinkAccent,

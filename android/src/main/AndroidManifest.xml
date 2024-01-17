@@ -10,23 +10,23 @@
             android:name="fake-signature"
             android:value="@string/fake_signature" />
 
-<!--        <activity-->
-<!--            android:name=".EcosedKitPlugin"-->
-<!--            android:enabled="true"-->
-<!--            android:exported="true"-->
-<!--            android:label="EcosedKit"-->
-<!--            android:theme="@style/Theme.EcosedKitPlugin" />-->
-
-
-        <!--        <service-->
-        <!--            android:name=".EcosedKitPlugin$EcosedService"-->
+        <!--        <activity-->
+        <!--            android:name=".EcosedKitPlugin"-->
         <!--            android:enabled="true"-->
-        <!--            android:foregroundServiceType="dataSync"-->
-        <!--            android:exported="false">-->
-        <!--            <intent-filter>-->
-        <!--                <action android:name="io.ecosed.kit.action" />-->
-        <!--            </intent-filter>-->
-        <!--        </service>-->
+        <!--            android:exported="true"-->
+        <!--            android:label="EcosedKit"-->
+        <!--            android:theme="@style/Theme.EcosedKitPlugin" />-->
+
+
+        <service
+            android:name=".EcosedKitPlugin"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="dataSync">
+            <intent-filter>
+                <action android:name="io.ecosed.kit.action" />
+            </intent-filter>
+        </service>
 
         <provider
             android:name="rikka.shizuku.ShizukuProvider"

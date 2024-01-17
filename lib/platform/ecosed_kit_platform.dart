@@ -1,5 +1,3 @@
-
-
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import 'method_channel_ecosed_kit.dart';

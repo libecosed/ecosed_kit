@@ -1,7 +1,7 @@
 import 'dart:ffi';
 
 import 'package:dynamic_color/dynamic_color.dart';
-import 'package:ecosed_kit/overview.dart';
+import 'package:ecosed_kit/layout/overview.dart';
 import 'package:flutter/material.dart';
 
 import 'package:flutter/foundation.dart';
@@ -10,7 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 
-import 'ecosed_banner.dart';
+import '../widget/banner.dart';
 
 class EcosedManager extends StatefulWidget {
   const EcosedManager({super.key});
@@ -50,13 +50,14 @@ class _EcosedHomeState extends State<EcosedHome> {
   Widget build(BuildContext context) {
     return EcosedBanner(
       child: Scaffold(
-        appBar: AppBar(title: const Text("EcosedKit")),
+        appBar: AppBar(title: const Text("管理器")),
         body: ValueListenableBuilder(valueListenable: pageIndex, builder: (context, value, child) {
           return IndexedStack(
             index: value,
             children: [
-              EcosedView(),
+              OverviewPage(),
               Text("Manager"),
+              Text("Plugin"),
             ],
           );
         }),
@@ -65,8 +66,8 @@ class _EcosedHomeState extends State<EcosedHome> {
             selectedIndex: pageIndex.value,
             destinations: const [
               NavigationDestination(
-                icon: Icon(Icons.info_outline),
-                selectedIcon: Icon(Icons.info),
+                icon: Icon(Icons.home_outlined),
+                selectedIcon: Icon(Icons.home),
                 label: "概览",
                 tooltip: "查看插件工作状态",
                 enabled: true,
@@ -77,14 +78,21 @@ class _EcosedHomeState extends State<EcosedHome> {
                 label: "管理",
                 tooltip: "管理插件",
                 enabled: true,
-              )
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.extension_outlined),
+                selectedIcon: Icon(Icons.extension),
+                label: "插件",
+                tooltip: "管理插件",
+                enabled: true,
+              ),
             ],
             onDestinationSelected: (index) {
               pageIndex.value = index;
             },
+            labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected
           );
         })
-
       ),
     );
   }

@@ -3,6 +3,7 @@ package io.ecosed.kit
 import android.Manifest
 import android.app.Activity
 import android.app.Notification
+import android.app.Service
 import android.app.UiModeManager
 import android.content.ComponentName
 import android.content.Context
@@ -25,7 +26,6 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
-import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.blankj.utilcode.util.AppUtils
 import com.blankj.utilcode.util.PermissionUtils
 import io.flutter.embedding.android.FlutterFragment
@@ -46,8 +46,8 @@ import rikka.shizuku.Shizuku
 import kotlin.system.exitProcess
 
 
-class EcosedKitPlugin : Fragment(), FlutterPlugin, MethodChannel.MethodCallHandler,
-    ActivityAware, DefaultLifecycleObserver, ServiceConnection {
+class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandler,
+    ActivityAware, LifecycleOwner, DefaultLifecycleObserver, ServiceConnection {
 
 
     /** Flutter插件方法通道 */
@@ -111,49 +111,135 @@ class EcosedKitPlugin : Fragment(), FlutterPlugin, MethodChannel.MethodCallHandl
         }
     }
 
-//    override fun onCreate() {
-//        super<Service>.onCreate()
+    override fun onCreate() {
+        super<Service>.onCreate()
+// 添加Shizuku监听
+        Shizuku.addBinderReceivedListener(mService)
+        Shizuku.addBinderDeadListener(mService)
+        Shizuku.addRequestPermissionResultListener(mService)
+
+        // 申请弹出通知权限
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val post = PermissionUtils.permission(Manifest.permission.POST_NOTIFICATIONS)
+
+            PermissionUtils.isGranted(Manifest.permission.POST_NOTIFICATIONS)
+            //post.callback { isAllGranted, granted, deniedForever, denied ->  }
+            post.request()
+        }
+
+
+        // 申请Shizuku权限
+
+        //checkPermission(0)
+
+
+//        if (AppUtils.isAppInstalled(EcosedManifest.ShizukuPackage)) {
 //
+//        } else {
 //
-//    }
-//
-//    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-//        return super.onStartCommand(intent, flags, startId)
-//    }
-//
-//    override fun onBind(intent: Intent): IBinder {
-//        return serviceUnit {
-//            return@serviceUnit getBinder(
-//                intent = intent
-//            )
 //        }
-//    }
-//
-//    override fun onRebind(intent: Intent?) {
-//        super.onRebind(intent)
-//    }
-//
-//    override fun onUnbind(intent: Intent?): Boolean {
-//        return super.onUnbind(intent)
-//    }
-//
-//    override fun onDestroy() {
-//        super<Service>.onDestroy()
-//
-//    }
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super<Fragment>.onCreate(savedInstanceState)
+//        try {
+//            if (Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED){
+//                Shizuku.requestPermission(0)
+//            } else {
+//                // 有权限
+//            }
+//        } catch (e: Exception) {
+//            if (e.javaClass == IllegalStateException().javaClass) {
+//                // 没激活
+//            }
+//        }
 
 
-        val m = Manager.build(wrapper = mManager)
+        // 申请签名欺骗权限
+        val fake = PermissionUtils.permission(EcosedManifest.fakePackageSignature)
+        fake.callback { isAllGranted, granted, deniedForever, denied -> }
+        fake.request()
+
+
+        // 检查GMS
+
+//        val code = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(this@EcosedKitPlugin)
+//        if (code == ConnectionResult.SUCCESS) {
+//            // 有gms
+//        } else {
+//            GoogleApiAvailability.getInstance().makeGooglePlayServicesAvailable(mActivity)
+//
+//            if (GoogleApiAvailability.getInstance().isUserResolvableError(code)){
+//                GoogleApiAvailability.getInstance().getErrorDialog(mActivity, code, 200)?.show()
+//            }
+//        }
+
+
+        // 绑定Shizuku服务
+        //Shizuku.bindUserService(mUserServiceArgs, this@EcosedKitPlugin)
+
+        poem = arrayListOf()
+        poem.add("不向焦虑与抑郁投降，这个世界终会有我们存在的地方。")
+        poem.add("把喜欢的一切留在身边，这便是努力的意义。")
+        poem.add("治愈、温暖，这就是我们最终幸福的结局。")
+        poem.add("我有一个梦，也许有一天，灿烂的阳光能照进黑暗森林。")
+        poem.add("如果必须要失去，那么不如一开始就不曾拥有。")
+        poem.add("我们的终点就是与幸福同在。")
+        poem.add("孤独的人不会伤害别人，只会不断地伤害自己罢了。")
+        poem.add("如果你能记住我的名字，如果你们都能记住我的名字，也许我或者我们，终有一天能自由地生存着。")
+        poem.add("对于所有生命来说，不会死亡的绝望，是最可怕的审判。")
+        poem.add("我不曾活着，又何必害怕死亡。")
+
+//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+//                val channel = NotificationChannel(
+//                    notificationChannel,
+//                    AppUtils.getAppName(),
+//                    NotificationManager.IMPORTANCE_HIGH
+//                )
+//                val notificationManager = getSystemService(
+//                    Context.NOTIFICATION_SERVICE
+//                ) as NotificationManager
+//                notificationManager.createNotificationChannel(channel)
+//            }
+//
+//
+//
+//            val notification = buildNotification()
+
+
+        //startForeground(notificationId, notification)
+
     }
 
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        return super.onStartCommand(intent, flags, startId)
+    }
 
+    override fun onBind(intent: Intent): IBinder {
+        return serviceUnit {
+            return@serviceUnit getBinder(
+                intent = intent
+            )
+        }
+    }
 
+    override fun onRebind(intent: Intent?) {
+        super.onRebind(intent)
+    }
+
+    override fun onUnbind(intent: Intent?): Boolean {
+        return super.onUnbind(intent)
+    }
+
+    override fun getLifecycle(): Lifecycle {
+        return mLifecycle
+    }
 
     override fun onDestroy() {
-        super<Fragment>.onDestroy()
+        super<Service>.onDestroy()
+        // 移除Shizuku监听
+        Shizuku.removeBinderDeadListener(mService)
+        Shizuku.removeBinderReceivedListener(mService)
+        Shizuku.removeRequestPermissionResultListener(mService)
+
+        // 解绑Shizuku服务
+        Shizuku.unbindUserService(mUserServiceArgs, this@EcosedKitPlugin, true)
     }
 
     // 插件附加到引擎
@@ -277,7 +363,7 @@ class EcosedKitPlugin : Fragment(), FlutterPlugin, MethodChannel.MethodCallHandl
                 }
                 when {
                     mIUserService != null -> {
-                        Toast.makeText(requireActivity(), "mIUserService", Toast.LENGTH_SHORT)
+                        Toast.makeText(this, "mIUserService", Toast.LENGTH_SHORT)
                             .show()
                     }
 
@@ -330,7 +416,7 @@ class EcosedKitPlugin : Fragment(), FlutterPlugin, MethodChannel.MethodCallHandl
             this@EcosedKitPlugin.javaClass.name -> {
                 mIsBind = false
                 mAIDL = null
-                requireContext().unbindService(this)
+                unbindService(this)
                 callBackUnit {
                     onEcosedDisconnected()
                 }
@@ -495,8 +581,6 @@ class EcosedKitPlugin : Fragment(), FlutterPlugin, MethodChannel.MethodCallHandl
 
     private interface ServiceWrapper {
         fun getBinder(intent: Intent): IBinder
-        fun onCreate()
-        fun onDestroy()
     }
 
     private interface ManagerWrapper {
@@ -744,21 +828,6 @@ class EcosedKitPlugin : Fragment(), FlutterPlugin, MethodChannel.MethodCallHandl
      ***********************************************************************************************
      */
 
-    private val mAdapter: FragmentStateAdapter = object : FragmentStateAdapter(
-        childFragmentManager, lifecycle
-    ) {
-
-        override fun getItemCount(): Int {
-            return 0
-        }
-
-        override fun createFragment(position: Int): Fragment {
-            return Manager.build(
-                wrapper = mManager
-            )
-        }
-    }
-
     private val mFramework = object : EcosedPlugin(), FlutterPluginProxy {
 
         override val channel: String
@@ -797,13 +866,10 @@ class EcosedKitPlugin : Fragment(), FlutterPlugin, MethodChannel.MethodCallHandl
         }
     }
 
-    private val mEngine = object : EcosedPlugin(), EngineWrapper, LifecycleOwner {
+    private val mEngine = object : EcosedPlugin(), EngineWrapper {
 
         override val channel: String
             get() = engineChannelName
-
-        override val lifecycle: Lifecycle
-            get() = mLifecycle
 
         override fun getActivity(activity: Activity) {
             mActivity = activity
@@ -818,7 +884,7 @@ class EcosedKitPlugin : Fragment(), FlutterPlugin, MethodChannel.MethodCallHandl
             // 设置来自插件的全局调试布尔值
             mFullDebug = isDebug
             // 添加生命周期观察者
-            this.lifecycle.addObserver(this@EcosedKitPlugin)
+            lifecycle.addObserver(this@EcosedKitPlugin)
         }
 
         override fun onEcosedMethodCall(call: EcosedMethodCall, result: EcosedResult) {
@@ -940,11 +1006,11 @@ class EcosedKitPlugin : Fragment(), FlutterPlugin, MethodChannel.MethodCallHandl
 
         override fun onEcosedAdded(binding: PluginBinding) = run {
             super.onEcosedAdded(binding)
-//            mEcosedServicesIntent = Intent(this@run, EcosedService().javaClass)
-//            mEcosedServicesIntent.action = action
-//
-//
-//            startService(mEcosedServicesIntent)
+            mEcosedServicesIntent = Intent(this@run, this@EcosedKitPlugin.javaClass)
+            mEcosedServicesIntent.action = action
+
+
+            startService(mEcosedServicesIntent)
             bindEcosed(this@run)
 
             Toast.makeText(this@run, "client", Toast.LENGTH_SHORT).show()
@@ -1005,110 +1071,6 @@ class EcosedKitPlugin : Fragment(), FlutterPlugin, MethodChannel.MethodCallHandl
                 override fun openDesktopSettings() = taskbarSettings()
                 override fun openEcosedSettings() = ecosedSettings()
             }
-        }
-
-        override fun onCreate() {
-            // 添加Shizuku监听
-            Shizuku.addBinderReceivedListener(this)
-            Shizuku.addBinderDeadListener(this)
-            Shizuku.addRequestPermissionResultListener(this)
-
-            // 申请弹出通知权限
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                val post = PermissionUtils.permission(Manifest.permission.POST_NOTIFICATIONS)
-
-                PermissionUtils.isGranted(Manifest.permission.POST_NOTIFICATIONS)
-                //post.callback { isAllGranted, granted, deniedForever, denied ->  }
-                post.request()
-            }
-
-
-            // 申请Shizuku权限
-
-            checkPermission(0)
-
-
-//        if (AppUtils.isAppInstalled(EcosedManifest.ShizukuPackage)) {
-//
-//        } else {
-//
-//        }
-//        try {
-//            if (Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED){
-//                Shizuku.requestPermission(0)
-//            } else {
-//                // 有权限
-//            }
-//        } catch (e: Exception) {
-//            if (e.javaClass == IllegalStateException().javaClass) {
-//                // 没激活
-//            }
-//        }
-
-
-            // 申请签名欺骗权限
-            val fake = PermissionUtils.permission(EcosedManifest.fakePackageSignature)
-            fake.callback { isAllGranted, granted, deniedForever, denied -> }
-            fake.request()
-
-
-            // 检查GMS
-
-//        val code = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(this@EcosedKitPlugin)
-//        if (code == ConnectionResult.SUCCESS) {
-//            // 有gms
-//        } else {
-//            GoogleApiAvailability.getInstance().makeGooglePlayServicesAvailable(mActivity)
-//
-//            if (GoogleApiAvailability.getInstance().isUserResolvableError(code)){
-//                GoogleApiAvailability.getInstance().getErrorDialog(mActivity, code, 200)?.show()
-//            }
-//        }
-
-
-            // 绑定Shizuku服务
-            Shizuku.bindUserService(mUserServiceArgs, this@EcosedKitPlugin)
-
-            poem = arrayListOf()
-            poem.add("不向焦虑与抑郁投降，这个世界终会有我们存在的地方。")
-            poem.add("把喜欢的一切留在身边，这便是努力的意义。")
-            poem.add("治愈、温暖，这就是我们最终幸福的结局。")
-            poem.add("我有一个梦，也许有一天，灿烂的阳光能照进黑暗森林。")
-            poem.add("如果必须要失去，那么不如一开始就不曾拥有。")
-            poem.add("我们的终点就是与幸福同在。")
-            poem.add("孤独的人不会伤害别人，只会不断地伤害自己罢了。")
-            poem.add("如果你能记住我的名字，如果你们都能记住我的名字，也许我或者我们，终有一天能自由地生存着。")
-            poem.add("对于所有生命来说，不会死亡的绝望，是最可怕的审判。")
-            poem.add("我不曾活着，又何必害怕死亡。")
-
-//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-//                val channel = NotificationChannel(
-//                    notificationChannel,
-//                    AppUtils.getAppName(),
-//                    NotificationManager.IMPORTANCE_HIGH
-//                )
-//                val notificationManager = getSystemService(
-//                    Context.NOTIFICATION_SERVICE
-//                ) as NotificationManager
-//                notificationManager.createNotificationChannel(channel)
-//            }
-//
-//
-//
-//            val notification = buildNotification()
-
-
-            //startForeground(notificationId, notification)
-        }
-
-        override fun onDestroy() {
-            // 移除Shizuku监听
-            Shizuku.removeBinderDeadListener(this)
-            Shizuku.removeBinderReceivedListener(this)
-            Shizuku.removeRequestPermissionResultListener(this)
-
-            // 解绑Shizuku服务
-            Shizuku.unbindUserService(mUserServiceArgs, this@EcosedKitPlugin, true)
         }
 
         override fun onBinderReceived() {
@@ -1380,7 +1342,7 @@ class EcosedKitPlugin : Fragment(), FlutterPlugin, MethodChannel.MethodCallHandl
 
     private fun buildNotification(): Notification {
         return NotificationCompat.Builder(
-            requireContext(),
+            this,
             notificationChannel
         ).build().apply {
             flags = Notification.FLAG_ONGOING_EVENT
@@ -1409,7 +1371,7 @@ class EcosedKitPlugin : Fragment(), FlutterPlugin, MethodChannel.MethodCallHandl
     }
 
     private fun watch(): Boolean {
-        return requireContext().getSystemService(
+        return getSystemService(
             UiModeManager::class.java
         ).currentModeType == Configuration.UI_MODE_TYPE_WATCH
     }
