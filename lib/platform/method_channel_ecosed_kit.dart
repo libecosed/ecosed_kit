@@ -9,8 +9,16 @@ class MethodChannelEcosedKit extends EcosedKitPlatform {
 
   @override
   Future<String?> getPlatformVersion() async {
+    Map<String, dynamic> map = {"channel": "ecosed_client"};
     final version =
-    await methodChannel.invokeMethod<String>('getPlatformVersion');
+    await methodChannel.invokeMethod<String>('getPlatformVersion', map);
     return version;
+  }
+
+  @override
+  Future<List?> getPluginList() async {
+    Map<String, dynamic> map = {"channel": "ecosed_engine"};
+    final list = await methodChannel.invokeMethod<List>('plugins', map);
+    return list;
   }
 }

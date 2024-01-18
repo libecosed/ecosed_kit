@@ -10,6 +10,11 @@ class MockEcosedKitPlatform
 
   @override
   Future<String?> getPlatformVersion() => Future.value('42');
+
+  @override
+  Future<List<String>?> getPluginList() {
+    return Future.value([""]);
+  }
 }
 
 void main() {

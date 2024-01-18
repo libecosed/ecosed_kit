@@ -2,6 +2,8 @@ import 'dart:ffi';
 
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:ecosed_kit/layout/overview.dart';
+import 'package:ecosed_kit/layout/plugins.dart';
+import 'package:ecosed_kit/platform/ecosed_plugin.dart';
 import 'package:flutter/material.dart';
 
 import 'package:flutter/foundation.dart';
@@ -46,6 +48,37 @@ class _EcosedHomeState extends State<EcosedHome> {
 
   ValueNotifier<int> pageIndex = ValueNotifier(0);
 
+  String _platformVersion = 'Unknown';
+  final _untitled3Plugin = EcosedPlugin();
+
+  @override
+  void initState() {
+    super.initState();
+    initPlatformState();
+  }
+
+  // Platform messages are asynchronous, so we initialize in an async method.
+  Future<void> initPlatformState() async {
+    String platformVersion;
+    // Platform messages may fail, so we use a try/catch PlatformException.
+    // We also handle the message potentially returning null.
+    try {
+      platformVersion =
+          await _untitled3Plugin.getPlatformVersion() ?? 'Unknown platform version';
+    } on PlatformException {
+      platformVersion = 'Failed to get platform version.';
+    }
+
+    // If the widget was removed from the tree while the asynchronous platform
+    // message was in flight, we want to discard the reply rather than calling
+    // setState to update our non-existent appearance.
+    if (!mounted) return;
+
+    setState(() {
+      _platformVersion = platformVersion;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return EcosedBanner(
@@ -56,8 +89,8 @@ class _EcosedHomeState extends State<EcosedHome> {
             index: value,
             children: [
               OverviewPage(),
-              Text("Manager"),
-              Text("Plugin"),
+              Text(_platformVersion),
+              PluginPage(),
             ],
           );
         }),

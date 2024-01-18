@@ -42,12 +42,12 @@ import io.flutter.plugin.platform.PlatformViewFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 import rikka.shizuku.Shizuku
 import kotlin.system.exitProcess
 
-
-class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandler,
-    ActivityAware, LifecycleOwner, DefaultLifecycleObserver, ServiceConnection {
+class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware,
+    ServiceConnection, LifecycleOwner, DefaultLifecycleObserver {
 
 
     /** Flutter插件方法通道 */
@@ -280,10 +280,8 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
                     get() = call.method
 
                 override val bundleProxy: Bundle
-                    get() {
-                        val bundle = Bundle()
-                        bundle.putString("", "")
-                        return bundle
+                    get() = Bundle().apply {
+                        putString("channel", call.argument<String>("channel"))
                     }
             },
             result = object : ResultProxy {
@@ -488,7 +486,6 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
     }
 
 
-
     /**
      ***********************************************************************************************
      * 分类: 内部基本接口方法
@@ -583,21 +580,6 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
         fun getBinder(intent: Intent): IBinder
     }
 
-    private interface ManagerWrapper {
-        fun onManagerCreate(
-            savedInstanceState: Bundle?
-        )
-        fun onManagerCreateView(
-            inflater: LayoutInflater,
-            container: ViewGroup?,
-            savedInstanceState: Bundle?
-        ): View?
-
-        fun onManagerViewCreated(view: View, savedInstanceState: Bundle?)
-        fun onManagerDestroyView()
-        fun onManagerDestroy()
-    }
-
     private interface NativeWrapper {
         fun main()
     }
@@ -650,6 +632,10 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
 
         /** 需要子类重写的通道名称 */
         abstract val channel: String
+        abstract val title: String
+        abstract val description: String
+        abstract val author: String
+        abstract val version: String
 
         /** 供子类使用的判断调试模式的接口 */
         protected val isDebug: Boolean = mDebug
@@ -832,6 +818,14 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
 
         override val channel: String
             get() = frameworkChannelName
+        override val title: String
+            get() = "Framework"
+        override val description: String
+            get() = "Ecosed Framework"
+        override val author: String
+            get() = "wyq0918dev"
+        override val version: String
+            get() = "1"
 
         override fun onEcosedAdded(binding: PluginBinding) {
             super.onEcosedAdded(binding)
@@ -866,10 +860,20 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
         }
     }
 
+    private var JSONList = arrayListOf<String>()
+
     private val mEngine = object : EcosedPlugin(), EngineWrapper {
 
         override val channel: String
             get() = engineChannelName
+        override val title: String
+            get() = "Engine"
+        override val description: String
+            get() = "Ecosed Engine"
+        override val author: String
+            get() = "wyq0918dev"
+        override val version: String
+            get() = "1"
 
         override fun getActivity(activity: Activity) {
             mActivity = activity
@@ -889,8 +893,9 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
 
         override fun onEcosedMethodCall(call: EcosedMethodCall, result: EcosedResult) {
             super.onEcosedMethodCall(call, result)
+
             when (call.method) {
-                "" -> result.success("")
+                "plugins" -> result.success(JSONList)
                 else -> result.notImplemented()
             }
         }
@@ -898,7 +903,7 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
         override fun onMethodCall(call: MethodCallProxy, result: ResultProxy) {
             try {
                 mExecResult = execMethodCall<Any>(
-                    channel = clientChannelName,
+                    channel = call.bundleProxy.getString("channel", engineChannelName),
                     method = call.methodProxy,
                     bundle = call.bundleProxy
                 )
@@ -947,7 +952,18 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
                                 }
                             }
                         }.run {
-                            mPluginList?.add(element = item)
+                            mPluginList?.add(
+                                element = item
+                            )
+                            JSONList.add(
+                                element = JSONObject().run {
+                                    put("channel", channel)
+                                    put("title", title)
+                                    put("description", description)
+                                    put("author", author)
+                                    put("version", version)
+                                }.toString()
+                            )
                             if (mBaseDebug) {
                                 Log.d(pluginTag, "插件${item.javaClass.name}已添加到插件列表")
                             }
@@ -1003,6 +1019,14 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
 
         override val channel: String
             get() = clientChannelName
+        override val title: String
+            get() = "Client"
+        override val description: String
+            get() = "Ecosed Client"
+        override val author: String
+            get() = "wyq0918dev"
+        override val version: String
+            get() = "1"
 
         override fun onEcosedAdded(binding: PluginBinding) = run {
             super.onEcosedAdded(binding)
@@ -1059,6 +1083,14 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
 
         override val channel: String
             get() = serviceChannelName
+        override val title: String
+            get() = "Service"
+        override val description: String
+            get() = "Ecosed Service"
+        override val author: String
+            get() = "wyq0918dev"
+        override val version: String
+            get() = "1"
 
         override fun getBinder(intent: Intent): IBinder {
             return object : EcosedKit.Stub() {
@@ -1091,6 +1123,14 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
 
         override val channel: String
             get() = nativeChannelName
+        override val title: String
+            get() = "Native"
+        override val description: String
+            get() = "Ecosed Native"
+        override val author: String
+            get() = "wyq0918dev"
+        override val version: String
+            get() = "1"
 
         override fun onEcosedMethodCall(call: EcosedMethodCall, result: EcosedResult) {
             super.onEcosedMethodCall(call, result)
@@ -1102,83 +1142,6 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
 
         override fun main() {
             main(arrayOf(""))
-        }
-    }
-
-    private val mManager = object : EcosedPlugin(), ManagerWrapper {
-
-        override val channel: String
-            get() = "ecosed_manger"
-
-        override fun onManagerCreate(savedInstanceState: Bundle?) {
-
-        }
-
-        override fun onManagerCreateView(
-            inflater: LayoutInflater,
-            container: ViewGroup?,
-            savedInstanceState: Bundle?
-        ): View? {
-            return null
-        }
-
-        override fun onManagerViewCreated(view: View, savedInstanceState: Bundle?) {
-
-        }
-
-        override fun onManagerDestroyView() {
-
-        }
-
-        override fun onManagerDestroy() {
-
-        }
-
-
-    }
-
-
-
-    private class Manager private constructor(wrapper: ManagerWrapper) : Fragment() {
-
-        private val mWrapper: ManagerWrapper = wrapper
-
-        override fun onCreate(savedInstanceState: Bundle?) {
-            super.onCreate(savedInstanceState)
-            mWrapper.onManagerCreate(savedInstanceState)
-        }
-
-        override fun onCreateView(
-            inflater: LayoutInflater,
-            container: ViewGroup?,
-            savedInstanceState: Bundle?
-        ): View? {
-            super.onCreateView(inflater, container, savedInstanceState)
-            return mWrapper.onManagerCreateView(inflater, container, savedInstanceState)
-        }
-
-        override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-            super.onViewCreated(view, savedInstanceState)
-            mWrapper.onManagerViewCreated(view, savedInstanceState)
-        }
-
-        override fun onDestroyView() {
-            super.onDestroyView()
-            mWrapper.onManagerDestroyView()
-        }
-
-        override fun onDestroy() {
-            super.onDestroy()
-            mWrapper.onManagerDestroy()
-        }
-
-        companion object {
-
-            fun build(
-                wrapper: ManagerWrapper
-            ): Manager = Manager(
-                wrapper = wrapper
-            )
         }
     }
 
@@ -1238,7 +1201,7 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
     private fun <R> pluginUnit(
         content: (ArrayList<EcosedPlugin>, PluginBinding) -> R
     ): R = content.invoke(
-        arrayListOf(mFramework, mEngine, mClient, mService, mManager, mNative),
+        arrayListOf(mFramework, mEngine, mClient, mService, mNative),
         PluginBinding(context = mActivity, debug = mBaseDebug)
     )
 
