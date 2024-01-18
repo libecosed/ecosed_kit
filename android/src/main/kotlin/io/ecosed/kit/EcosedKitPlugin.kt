@@ -59,6 +59,9 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
     /** 插件列表. */
     private var mPluginList: ArrayList<EcosedPlugin>? = null
 
+    private var mJSONList = arrayListOf<String>()
+
+
     /** Activity */
     private lateinit var mActivity: Activity
 
@@ -860,7 +863,7 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
         }
     }
 
-    private var JSONList = arrayListOf<String>()
+
 
     private val mEngine = object : EcosedPlugin(), EngineWrapper {
 
@@ -895,7 +898,7 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
             super.onEcosedMethodCall(call, result)
 
             when (call.method) {
-                "plugins" -> result.success(JSONList)
+                "plugins" -> result.success(mJSONList)
                 else -> result.notImplemented()
             }
         }
@@ -955,7 +958,7 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
                             mPluginList?.add(
                                 element = item
                             )
-                            JSONList.add(
+                            mJSONList.add(
                                 element = JSONObject().run {
                                     put("channel", channel)
                                     put("title", title)
