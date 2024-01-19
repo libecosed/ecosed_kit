@@ -15,7 +15,7 @@ class _OverviewPageState extends State<OverviewPage> {
     return const Column(
       children: [
         Padding(
-          padding: EdgeInsets.fromLTRB(12, 12, 12, 6),
+          padding: EdgeInsets.symmetric(vertical: 6, horizontal: 12),
           child: StateCard()
         )
       ],
