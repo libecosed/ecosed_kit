@@ -5,7 +5,8 @@ class StateCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Card(
+    return Card(
+      color: Theme.of(context).colorScheme.secondaryContainer,
       child: Padding(
           padding: EdgeInsets.all(24),
           child: Row(

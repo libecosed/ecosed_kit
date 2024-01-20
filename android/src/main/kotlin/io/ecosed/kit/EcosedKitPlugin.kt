@@ -16,18 +16,17 @@ import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
 import android.util.Log
-import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
-import androidx.fragment.app.Fragment
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import com.blankj.utilcode.util.AppUtils
 import com.blankj.utilcode.util.PermissionUtils
+import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.android.FlutterFragment
 import io.flutter.embedding.android.FlutterView
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -121,15 +120,6 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
         Shizuku.addBinderDeadListener(mService)
         Shizuku.addRequestPermissionResultListener(mService)
 
-        // 申请弹出通知权限
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            val post = PermissionUtils.permission(Manifest.permission.POST_NOTIFICATIONS)
-
-            PermissionUtils.isGranted(Manifest.permission.POST_NOTIFICATIONS)
-            //post.callback { isAllGranted, granted, deniedForever, denied ->  }
-            post.request()
-        }
-
 
         // 申请Shizuku权限
 
@@ -189,24 +179,6 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
         poem.add("对于所有生命来说，不会死亡的绝望，是最可怕的审判。")
         poem.add("我不曾活着，又何必害怕死亡。")
 
-//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-//                val channel = NotificationChannel(
-//                    notificationChannel,
-//                    AppUtils.getAppName(),
-//                    NotificationManager.IMPORTANCE_HIGH
-//                )
-//                val notificationManager = getSystemService(
-//                    Context.NOTIFICATION_SERVICE
-//                ) as NotificationManager
-//                notificationManager.createNotificationChannel(channel)
-//            }
-//
-//
-//
-//            val notification = buildNotification()
-
-
-        //startForeground(notificationId, notification)
 
     }
 
@@ -249,6 +221,7 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         mMethodChannel = MethodChannel(binding.binaryMessenger, flutterChannelName)
         mMethodChannel.setMethodCallHandler(this@EcosedKitPlugin)
+
         binding.platformViewRegistry.registerViewFactory(
             viewTypeId, object : PlatformViewFactory(StandardMessageCodec.INSTANCE) {
 
@@ -469,25 +442,6 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
             }
         }
     }
-
-
-    /**
-     ***********************************************************************************************
-     * 分类: 子类重写
-     ***********************************************************************************************
-     */
-
-    open fun onCreateView(
-        content: View,
-        viewGroup: ViewGroup
-    ): View? {
-        return null
-    }
-
-    open fun onCreateFlutter(): FlutterFragment {
-        return FlutterFragment.createDefault()
-    }
-
 
     /**
      ***********************************************************************************************
@@ -826,7 +780,7 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
         override val description: String
             get() = "Ecosed Framework"
         override val author: String
-            get() = "wyq0918dev"
+            get() = defaultAuthor
         override val version: String
             get() = "1"
 
@@ -864,7 +818,6 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
     }
 
 
-
     private val mEngine = object : EcosedPlugin(), EngineWrapper {
 
         override val channel: String
@@ -896,9 +849,17 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
 
         override fun onEcosedMethodCall(call: EcosedMethodCall, result: EcosedResult) {
             super.onEcosedMethodCall(call, result)
-
             when (call.method) {
-                "plugins" -> result.success(mJSONList)
+                "getPlugins" -> result.success(mJSONList)
+                "addPlugin" -> mJSONList.add(
+                    element = JSONObject().run {
+                        put("channel", call.bundle?.getString("channel", "unknown"))
+                        put("title", call.bundle?.getString("title", "untitled"))
+                        put("description", call.bundle?.getString("description", "unknown"))
+                        put("author", call.bundle?.getString("author", "unknown"))
+                        put("version", call.bundle?.getString("version", "unknown"))
+                    }.toString()
+                )
                 else -> result.notImplemented()
             }
         }
@@ -1306,16 +1267,6 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
         }
     }
 
-    private fun buildNotification(): Notification {
-        return NotificationCompat.Builder(
-            this,
-            notificationChannel
-        ).build().apply {
-            flags = Notification.FLAG_ONGOING_EVENT
-        }
-    }
-
-
     private fun frameworkVersion(): String {
         return AppUtils.getAppVersionName()
     }
@@ -1401,10 +1352,6 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
             System.loadLibrary("ecosed")
         }
 
-        fun build(): EcosedKitPlugin {
-            return EcosedKitPlugin()
-        }
-
         // 打印日志的标签
         const val pluginTag: String = "EcosedKitPlugin"
 
@@ -1420,8 +1367,7 @@ class EcosedKitPlugin : Service(), FlutterPlugin, MethodChannel.MethodCallHandle
         const val serviceChannelName: String = "ecosed_service"
         const val nativeChannelName: String = "ecosed_native"
 
-        const val notificationId = 1
-        const val notificationChannel: String = "ecosed_notification"
+        const val defaultAuthor: String = "wyq0918dev"
 
         const val action: String = "io.ecosed.kit.action"
 

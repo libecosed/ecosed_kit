@@ -1,4 +1,4 @@
-import 'package:ecosed_kit/widget/state.dart';
+import 'package:ecosed_kit/src/widget/state.dart';
 import 'package:flutter/material.dart';
 
 class OverviewPage extends StatefulWidget {

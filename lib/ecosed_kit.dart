@@ -1,13 +1,3 @@
 library ecosed_kit;
 
-import 'package:flutter/material.dart';
-
-import 'layout/ecosed_manager.dart';
-
-export 'ecosed_kit.dart';
-
-class EcosedKit {
-  Widget manager() {
-    return const EcosedManager();
-  }
-}
+export 'src/widget/view.dart';

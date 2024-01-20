@@ -1,6 +1,6 @@
 import 'ecosed_kit_platform.dart';
 
-class EcosedPlugin {
+class EcosedNative {
   Future<String?> getPlatformVersion() {
     return EcosedKitPlatform.instance.getPlatformVersion();
   }
