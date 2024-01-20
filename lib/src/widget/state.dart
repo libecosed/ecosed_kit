@@ -1,28 +1,36 @@
 import 'package:flutter/material.dart';
 
 class StateCard extends StatelessWidget {
-  const StateCard({super.key});
+  const StateCard(
+      {super.key,
+      required this.icon,
+      required this.title,
+      required this.subtitle});
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
 
   @override
   Widget build(BuildContext context) {
     return Card(
       color: Theme.of(context).colorScheme.secondaryContainer,
       child: Padding(
-          padding: EdgeInsets.all(24),
+          padding: const EdgeInsets.all(24),
           child: Row(
             children: [
-              Icon(Icons.keyboard_command_key),
+              Icon(icon),
               Padding(
-                padding: EdgeInsets.only(left: 24),
+                padding: const EdgeInsets.only(left: 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "EcosedKit",
+                      title,
                       textAlign: TextAlign.left,
                     ),
                     Text(
-                      "版本: 1.0",
+                      subtitle,
                       textAlign: TextAlign.left,
                     )
                   ],

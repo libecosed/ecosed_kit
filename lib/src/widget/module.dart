@@ -5,6 +5,18 @@ class Plugin extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Placeholder();
+    return Card(
+      color: Theme.of(context).colorScheme.surface,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(24, 8, 24, 8),
+        child: Column(
+          children: [
+            Row(
+              children: [],
+            )
+          ],
+        ),
+      ),
+    );
   }
 }

@@ -16,7 +16,11 @@ class _OverviewPageState extends State<OverviewPage> {
       children: [
         Padding(
           padding: EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-          child: StateCard()
+          child: StateCard(
+            icon: Icons.keyboard_command_key,
+            title: 'EcosedKit',
+            subtitle: '版本: 1.0',
+          )
         )
       ],
     );

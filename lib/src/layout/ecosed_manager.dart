@@ -23,6 +23,7 @@ class _EcosedManagerState extends State<EcosedManager> {
     return DynamicColorBuilder(
         builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
       return MaterialApp(
+        title: 'EcosedKit',
         home: const EcosedHome(),
         theme: ThemeData(colorScheme: lightDynamic, useMaterial3: true),
         darkTheme: ThemeData(colorScheme: darkDynamic, useMaterial3: true),
