@@ -1,3 +1,4 @@
+import 'package:ecosed_kit/src/widget/module.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -11,7 +12,7 @@ class PluginPage extends StatefulWidget {
 }
 
 class _PluginPageState extends State<PluginPage> {
-  List _pluginList = ['Unknown'];
+  List _pluginList = ['{"unknown":"unknown"}'];
   final _ecosedNative = EcosedNative();
 
   @override
@@ -35,7 +36,6 @@ class _PluginPageState extends State<PluginPage> {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-        children: _pluginList.map((e) => ListTile(title: Text(e))).toList());
+    return ListView(children: _pluginList.map((e) => Plugin(json: e)).toList());
   }
 }
